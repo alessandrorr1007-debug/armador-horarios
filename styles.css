@@ -634,9 +634,27 @@ h1, h2, h3, h4 {
   border-bottom: 1px solid var(--border-color);
 }
 
+.time-labels-column {
+  background: var(--bg-input);
+  border-right: 1px solid var(--border-color);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.time-dynamic-label {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 .time-slot-line {
-  border-bottom: 1px solid var(--border-color);
-  border-left: 1px solid var(--border-color);
+  border-bottom: 1px dashed var(--border-color);
   box-sizing: border-box;
 }
 

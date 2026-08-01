@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARMADOR DE HORARIOS INTELIGENTE - CALENDARIO CON MINUTOS EXACTOS UPAO
+   ARMADOR DE HORARIOS INTELIGENTE - ETIQUETAS DINÁMICAS AL MINUTO REAL UPAO
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     5. MOTOR ALGORÍTMICO Y COMPACTACIÓN INTELIGENTE (UPAO 5 MIN = 0 HUECO)
+     5. MOTOR ALGORÍTMICO Y COMPACTACIÓN INTELIGENTE
      -------------------------------------------------------------------------- */
   const btnGenerateSchedule = document.getElementById('btn-generate-schedule');
 
@@ -760,7 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     6. RENDERIZADO CON POSICIONAMIENTO PROPORCIONAL EXACTO AL MINUTO
+     6. RENDERIZADO DEL CALENDARIO CON ETIQUETAS DINÁMICAS (TAREAS 1, 2, 3, 4 y 5)
      -------------------------------------------------------------------------- */
   const timetableGrid = document.getElementById('timetable-grid');
   const solutionsPills = document.getElementById('solutions-pills');
@@ -824,27 +824,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeDaysList = hasSunday ? ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] : ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const numDays = activeDaysList.length;
 
-    let minStartHour = 7;
-    let maxEndHour = 22;
-
+    // TAREA 1 y 2: Extraer el conjunto ÚNICO de horas de inicio y fin reales de las clases cargadas
+    const timePointsSet = new Set();
     currentSol.selection.forEach(item => {
       item.slots.forEach(slot => {
-        const startH = Math.floor(slot.startMin / 60);
-        const endH = Math.ceil(slot.endMin / 60);
-        if (startH < minStartHour) minStartHour = Math.max(6, startH);
-        if (endH > maxEndHour) maxEndHour = Math.min(23, endH);
+        timePointsSet.add(slot.startMin);
+        timePointsSet.add(slot.endMin);
       });
     });
 
-    // CÁLCULO DE ALTURA PROPORCIONAL AL MINUTO EXACTO (ROW_HEIGHT = 60px por hora = 1px por minuto)
-    const ROW_HEIGHT = 60;
-    const totalHours = maxEndHour - minStartHour;
-    const baseMin = minStartHour * 60;
-    const totalHeightPx = totalHours * ROW_HEIGHT;
+    let timePoints = Array.from(timePointsSet).sort((a, b) => a - b);
 
-    timetableGrid.style.gridTemplateColumns = `70px repeat(${numDays}, minmax(130px, 1fr))`;
+    // TAREA 3: Respaldos de bloques típicos UPAO si estuviera vacío
+    if (timePoints.length < 2) {
+      timePoints = [420, 525, 530, 635, 640, 745, 860, 965, 970, 1075, 1080, 1190, 1295];
+    }
 
-    // 1. Esquina vacía
+    const minStartMin = timePoints[0];
+    const maxEndMin = timePoints[timePoints.length - 1];
+    const totalDurationMin = Math.max(60, maxEndMin - minStartMin);
+
+    // TAREA 4: Escala proporcional de minutos a píxeles (1.2px por minuto para excelente legibilidad)
+    const PX_PER_MIN = 1.3;
+    const totalHeightPx = Math.max(350, totalDurationMin * PX_PER_MIN);
+
+    timetableGrid.style.gridTemplateColumns = `85px repeat(${numDays}, minmax(130px, 1fr))`;
+
+    // 1. Esquina superior
     const cornerCell = document.createElement('div');
     cornerCell.className = 'time-header-cell';
     cornerCell.textContent = 'Hora';
@@ -858,44 +864,57 @@ document.addEventListener('DOMContentLoaded', () => {
       timetableGrid.appendChild(dayHeader);
     });
 
-    // 3. Columna izquierda de etiquetas de hora (referencia visual)
+    // 3. Columna izquierda de ETIQUETAS DINÁMICAS (Horas reales de inicio/fin)
     const timeCol = document.createElement('div');
     timeCol.className = 'time-labels-column';
-    for (let h = minStartHour; h < maxEndHour; h++) {
-      const timeCell = document.createElement('div');
-      timeCell.className = 'time-header-cell';
-      timeCell.style.height = `${ROW_HEIGHT}px`;
-      timeCell.style.boxSizing = 'border-box';
-      timeCell.textContent = `${String(h).padStart(2, '0')}:00`;
-      timeCol.appendChild(timeCell);
-    }
+    timeCol.style.position = 'relative';
+    timeCol.style.height = `${totalHeightPx}px`;
+
+    timePoints.forEach(m => {
+      const topPx = (m - minStartMin) * PX_PER_MIN;
+      const label = document.createElement('div');
+      label.className = 'time-dynamic-label';
+      label.style.position = 'absolute';
+      label.style.top = `${topPx}px`;
+      label.style.transform = 'translateY(-50%)';
+      label.style.width = '100%';
+      label.style.fontSize = '0.72rem';
+      label.style.fontWeight = '700';
+      label.style.color = 'var(--primary)';
+      label.style.textAlign = 'center';
+      label.textContent = formatTime12H(m);
+      timeCol.appendChild(label);
+    });
     timetableGrid.appendChild(timeCol);
 
-    // 4. Columnas de Días con Renderizado Proporcional Exacto
+    // 4. Columnas de Días con Líneas de Guía en Horas Reales y Bloques Proporcionales (TAREA 5)
     for (let d = 0; d < numDays; d++) {
       const dayCol = document.createElement('div');
       dayCol.className = 'day-column-body';
       dayCol.style.position = 'relative';
       dayCol.style.height = `${totalHeightPx}px`;
 
-      // Líneas horizontales de guía por hora
-      for (let h = minStartHour; h < maxEndHour; h++) {
-        const lineCell = document.createElement('div');
-        lineCell.className = 'time-slot-line';
-        lineCell.style.height = `${ROW_HEIGHT}px`;
-        lineCell.style.boxSizing = 'border-box';
-        dayCol.appendChild(lineCell);
-      }
+      // Renderizar líneas de guía horizontales exactamente en los minutos reales de las clases
+      timePoints.forEach(m => {
+        const topPx = (m - minStartMin) * PX_PER_MIN;
+        const line = document.createElement('div');
+        line.className = 'time-slot-line';
+        line.style.position = 'absolute';
+        line.style.top = `${topPx}px`;
+        line.style.left = '0';
+        line.style.right = '0';
+        line.style.borderTop = '1px dashed var(--border-color)';
+        line.style.opacity = '0.6';
+        dayCol.appendChild(line);
+      });
 
-      // Posicionamiento de bloques de clase al minuto exacto
+      // Renderizar bloques de clase alineados dinámicamente
       currentSol.selection.forEach(item => {
         item.slots.forEach(slot => {
           if (slot.day === d) {
-            // Posición top exacto (minutos transcurridos desde la hora base)
-            const topPx = (slot.startMin - baseMin) * (ROW_HEIGHT / 60);
-            // Altura exacta proporcional a la duración en minutos
+            const topPx = (slot.startMin - minStartMin) * PX_PER_MIN;
             const durationMin = slot.endMin - slot.startMin;
-            const heightPx = durationMin * (ROW_HEIGHT / 60);
+            const heightPx = durationMin * PX_PER_MIN;
 
             const eventBlock = document.createElement('div');
             eventBlock.className = 'event-block';
@@ -904,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
               eventBlock.style.border = '2px dashed #f59e0b';
             }
             eventBlock.style.top = `${topPx}px`;
-            eventBlock.style.height = `${Math.max(22, heightPx - 1)}px`; // -1px para separación entre bloques contiguos
+            eventBlock.style.height = `${Math.max(22, heightPx - 1)}px`;
 
             eventBlock.innerHTML = `
               <span class="event-title">${escapeHtml(item.courseName)} ${item.isClosedInPortal ? '🔴' : ''}</span>
@@ -969,6 +988,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;
     return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  }
+
+  function formatTime12H(totalMinutes) {
+    let hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    const period = hours >= 12 ? 'PM' : 'AM';
+    if (hours > 12) hours -= 12;
+    if (hours === 0) hours = 12;
+    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${period}`;
   }
 
   function timeStringToMin(timeStr) {
