@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARMADOR DE HORARIOS INTELIGENTE - OPTIMIZACIÓN LABORAL EN PASO 3
+   ARMADOR DE HORARIOS INTELIGENTE - MOTOR CON LIGAS DE GRUPO (T + L)
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -85,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (generatedSolutions.length > 0) {
-      // Reordenar soluciones según el estado de optimización
       generatedSolutions.sort((a, b) => workOptimizationActive ? (b.score - a.score) : (a.totalGapHours - b.totalGapHours));
       activeSolutionIndex = 0;
       renderStep3Results();
@@ -131,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     2. PARSER DE TEXTO UNIVERSAL INFALIBLE
+     2. PARSER DE TEXTO UNIVERSAL (CON tipoLiga Y grupoLiga)
      -------------------------------------------------------------------------- */
   function parseScheduleText(text) {
     if (!text || !text.trim()) return [];
@@ -210,6 +209,14 @@ document.addEventListener('DOMContentLoaded', () => {
           liga = ligaMatch[2];
         }
 
+        // TAREA 1: Extraer tipoLiga ('T' o 'L') y grupoLiga (número al final de ID LIGA)
+        let tipoLiga = null;
+        let grupoLiga = null;
+        if (idLiga) {
+          tipoLiga = idLiga.charAt(0).toUpperCase();
+          grupoLiga = idLiga.replace(/\D/g, '');
+        }
+
         const isClosed = /CERRADO|🔴/i.test(chunk);
         const capa = capaRaw ? capaRaw.replace(/\D/g, '') : null;
         const regi = regiRaw ? regiRaw.replace(/CERRADO/i, '').trim().replace(/\D/g, '') : null;
@@ -253,6 +260,8 @@ document.addEventListener('DOMContentLoaded', () => {
           secc: secc || '01',
           idLiga: idLiga || null,
           liga: liga || null,
+          tipoLiga: tipoLiga,
+          grupoLiga: grupoLiga,
           aula: mainSlot.aula || aula,
           dia: mainSlot.dia || null,
           horaInicio: mainSlot.horaInicio || null,
@@ -365,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const docLabel = sec.docente ? sec.docente : 'Docente asignado';
         
         const ligaBadge = (sec.idLiga || sec.liga)
-          ? `<span class="badge-status" style="background: rgba(99,102,241,0.15); color: #818cf8; font-size: 0.75rem; margin-left: 0.3rem;"><i class="ri-links-line"></i> Grupo: ${escapeHtml(sec.idLiga || 'N/A')} ➔ ${escapeHtml(sec.liga || 'N/A')}</span>`
+          ? `<span class="badge-status" style="background: rgba(99,102,241,0.15); color: #818cf8; font-size: 0.75rem; margin-left: 0.3rem;"><i class="ri-links-line"></i> Grupo ${escapeHtml(sec.grupoLiga || '1')}: ${escapeHtml(sec.tipoLiga || 'T')} (${escapeHtml(sec.idLiga || 'N/A')})</span>`
           : '';
 
         let slotsHtml = '';
@@ -428,7 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     5. MOTOR ALGORÍTMICO CON OPTIMIZACIÓN LABORAL (COMPACTACIÓN + NO SÁBADOS)
+     5. MOTOR ALGORÍTMICO POR GRUPOS LIGADOS (TAREAS 2, 3, 4 y 6)
      -------------------------------------------------------------------------- */
   const btnGenerateSchedule = document.getElementById('btn-generate-schedule');
 
@@ -454,6 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function solveSchedulesWithLigas(courses) {
     const courseOptionsList = courses.map(course => {
       const allSections = course.sections;
+      // TAREA 5: Filtrar secciones abiertas e incluidas
       const activeSections = allSections.filter(s => s.incluirEnArmado !== false && s.estado !== 'CERRADO');
       
       const mappedSections = activeSections.map(s => {
@@ -475,52 +485,53 @@ document.addEventListener('DOMContentLoaded', () => {
           sectionCode: `Sec ${s.secc || '01'} (NRC ${s.nrc || 'N/A'})`,
           professor: s.docente || 'Docente asignado',
           idLiga: s.idLiga,
-          liga: s.liga,
+          tipoLiga: s.tipoLiga || (s.idLiga ? s.idLiga.charAt(0).toUpperCase() : null),
+          grupoLiga: s.grupoLiga || (s.idLiga ? s.idLiga.replace(/\D/g, '') : null),
           slots: slotObjects
         };
       });
 
-      const hasLigas = mappedSections.some(s => s.idLiga || s.liga);
+      // TAREA 4: Si un curso no tiene ningún campo ID LIGA, se trata como secciones sueltas
+      const hasLigas = mappedSections.some(s => s.grupoLiga);
 
       if (!hasLigas) {
         return mappedSections.map(sec => [sec]);
       }
 
-      const clusters = {};
+      // TAREA 2: Agrupar todas las secciones del curso por grupoLiga y por tipoLiga ('T' o 'L')
+      const groupStructures = {};
+      allSections.forEach(s => {
+        const gNum = s.grupoLiga || (s.idLiga ? s.idLiga.replace(/\D/g, '') : null);
+        const tType = s.tipoLiga || (s.idLiga ? s.idLiga.charAt(0).toUpperCase() : null);
+        if (gNum && tType) {
+          if (!groupStructures[gNum]) groupStructures[gNum] = new Set();
+          groupStructures[gNum].add(tType);
+        }
+      });
+
+      const activeGroups = {};
       mappedSections.forEach(sec => {
-        const groupMatch = (sec.idLiga || sec.liga || '').match(/\d+/);
-        const groupNum = groupMatch ? groupMatch[0] : null;
-        const clusterKey = groupNum ? `G_${groupNum}` : ([sec.idLiga, sec.liga].filter(Boolean).sort().join('-') || 'SIN_LIGA');
-
-        if (!clusters[clusterKey]) clusters[clusterKey] = { groupNum, subMap: {} };
-
-        const compType = sec.idLiga || 'UNICO';
-        if (!clusters[clusterKey].subMap[compType]) clusters[clusterKey].subMap[compType] = [];
-        clusters[clusterKey].subMap[compType].push(sec);
+        const gNum = sec.grupoLiga;
+        if (!activeGroups[gNum]) activeGroups[gNum] = {};
+        const tType = sec.tipoLiga || 'UNICO';
+        if (!activeGroups[gNum][tType]) activeGroups[gNum][tType] = [];
+        activeGroups[gNum][tType].push(sec);
       });
 
       const validCourseOptions = [];
 
-      Object.entries(clusters).forEach(([clusterKey, { groupNum, subMap }]) => {
-        const allRequiredCompTypes = new Set();
-        allSections.forEach(s => {
-          const gMatch = (s.idLiga || s.liga || '').match(/\d+/);
-          const gNum = gMatch ? gMatch[0] : null;
-          if (gNum === groupNum) {
-            if (s.idLiga) allRequiredCompTypes.add(s.idLiga);
-            if (s.liga) allRequiredCompTypes.add(s.liga);
-          }
-        });
+      // TAREA 3: Armar combinaciones para cada grupo completo (1 opción T + 1 opción L de dicho grupo)
+      Object.entries(activeGroups).forEach(([gNum, typeMap]) => {
+        const requiredTypes = groupStructures[gNum] ? Array.from(groupStructures[gNum]) : Object.keys(typeMap);
+        const availableTypes = Object.keys(typeMap);
 
-        const availableSubKeys = Object.keys(subMap);
-        const isCompleteGroup = Array.from(allRequiredCompTypes).every(req => availableSubKeys.includes(req));
-
+        const isCompleteGroup = requiredTypes.every(req => availableTypes.includes(req));
         if (!isCompleteGroup) {
-          console.warn(`⚠️ Grupo ${clusterKey} descartado por incompleto.`);
+          console.warn(`⚠️ Grupo ${gNum} descartado por faltar componentes abiertos (ej. Práctica cerrada).`);
           return;
         }
 
-        const subKeys = Object.keys(subMap);
+        const subKeys = Object.keys(typeMap);
 
         function combineSubKeys(subIdx, currentCombo) {
           if (subIdx === subKeys.length) {
@@ -529,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           const currentSubKey = subKeys[subIdx];
-          const candidateSections = subMap[currentSubKey];
+          const candidateSections = typeMap[currentSubKey];
 
           for (let candidate of candidateSections) {
             if (!hasInternalOverlap(candidate, currentCombo)) {
@@ -548,6 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const validSolutions = [];
 
+    // TAREA 6: Backtracking reserva simultáneamente la sección T Y la sección L del grupo elegido
     function backtrack(courseIndex, currentSelection) {
       if (courseIndex === courseOptionsList.length) {
         const solutionMetrics = calculateSolutionMetrics(currentSelection);
@@ -628,7 +640,6 @@ document.addEventListener('DOMContentLoaded', () => {
         activeDays.add(slot.day);
         dayClassesMap[slot.day].push({ start: slot.startMin, end: slot.endMin });
 
-        // Sábado = día 5. Trabajo de 07:00 AM (420 min) a 02:00 PM (840 min) + 1.5h viaje (90 min) = 03:30 PM (930 min)
         if (slot.day === 5) {
           saturdayMinutes += (slot.endMin - slot.startMin);
           if (slot.startMin < 930) {
@@ -652,14 +663,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalGapHours = (totalGapMin / 60);
     const totalWeeklyHours = (totalWeeklyMin / 60);
 
-    // Algoritmo de Ranking Profesional:
-    // 1) Penalización máxima si el Sábado choca con el trabajo (07:00 AM - 03:30 PM)
-    // 2) Penalización por huecos libres entre clases (compactación)
-    // 3) Penalización leve por más días asistidos
     let score = 10000;
     if (saturdayWorkConflict) score -= 6000;
     if (saturdayMinutes > 0) score -= (saturdayMinutes * 3);
-    score -= (totalGapMin * 10); // Fuerte penalización por huecos
+    score -= (totalGapMin * 10);
     score -= (activeDays.size * 50);
 
     return { score, totalGapHours, totalWeeklyHours, saturdayWorkConflict, saturdayMinutes };
