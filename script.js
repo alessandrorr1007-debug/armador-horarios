@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARMADOR DE HORARIOS INTELIGENTE - SIMULACIÓN DE SECCIONES CERRADAS
+   ARMADOR DE HORARIOS INTELIGENTE - MOTOR UPAO CON COMPACTACIÓN INTELIGENTE
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -76,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
   btnAddMoreCourses?.addEventListener('click', () => goToStep(1));
   btnViewCoursesList?.addEventListener('click', () => goToStep(2));
 
-  // Toggle global de simulación de secciones cerradas
   toggleIncludeClosed?.addEventListener('change', (e) => {
     simulateClosedMode = e.target.checked;
     coursesData.forEach(course => {
@@ -100,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (generatedSolutions.length > 0) {
-      generatedSolutions.sort((a, b) => workOptimizationActive ? (b.score - a.score) : (a.totalGapHours - b.totalGapHours));
+      generatedSolutions.sort(compareSolutions);
       activeSolutionIndex = 0;
       renderStep3Results();
     }
@@ -341,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     4. RENDERIZADO PASO 2 (PERMITE ACTIVAR CERRADAS PARA SIMULACIÓN)
+     4. RENDERIZADO PASO 2
      -------------------------------------------------------------------------- */
   const coursesEditorList = document.getElementById('courses-editor-list');
 
@@ -477,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     5. MOTOR ALGORÍTMICO DE ARMADO DE HORARIO (PERMITE SIMULAR CERRADAS)
+     5. MOTOR ALGORÍTMICO Y COMPACTACIÓN INTELIGENTE (UPAO 5 MIN = 0 HUECO)
      -------------------------------------------------------------------------- */
   const btnGenerateSchedule = document.getElementById('btn-generate-schedule');
 
@@ -503,7 +502,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function solveSchedulesWithLigas(courses) {
     const courseOptionsList = courses.map(course => {
       const allSections = course.sections;
-      // Incluir cualquier sección con incluirEnArmado === true (incluso cerradas si fueron activadas para simulación)
       const activeSections = allSections.filter(s => s.incluirEnArmado === true || (simulateClosedMode && s.incluirEnArmado !== false));
       
       const mappedSections = activeSections.map(s => {
@@ -603,8 +601,11 @@ document.addEventListener('DOMContentLoaded', () => {
         validSolutions.push({
           selection: [...currentSelection],
           score: solutionMetrics.score,
-          totalGapHours: solutionMetrics.totalGapHours,
+          totalDeadTimeMin: solutionMetrics.totalDeadTimeMin,
+          totalDeadTimeHours: solutionMetrics.totalDeadTimeHours,
+          totalGapHours: solutionMetrics.totalDeadTimeHours, // Compatibilidad UI
           totalWeeklyHours: solutionMetrics.totalWeeklyHours,
+          activeDaysCount: solutionMetrics.activeDaysCount,
           saturdayWorkConflict: solutionMetrics.saturdayWorkConflict
         });
         return;
@@ -622,8 +623,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     backtrack(0, []);
-    validSolutions.sort((a, b) => b.score - a.score);
+    validSolutions.sort(compareSolutions);
     return validSolutions;
+  }
+
+  /* --------------------------------------------------------------------------
+     FUNCIÓN DE ORDENAMIENTO Y DESEMPATE (TAREAS 1, 2, 3 Y 4)
+     -------------------------------------------------------------------------- */
+  function compareSolutions(a, b) {
+    // Si la optimización laboral de Sábados está activa, penaliza fuertemente el trabajo los Sábados
+    if (workOptimizationActive) {
+      if (a.saturdayWorkConflict !== b.saturdayWorkConflict) {
+        return a.saturdayWorkConflict ? 1 : -1;
+      }
+    }
+
+    // TAREA 1 y 2: Menor tiempo muerto primero
+    const diffDeadTime = a.totalDeadTimeMin - b.totalDeadTimeMin;
+
+    // TAREA 4: Si la diferencia es menor a 30 minutos (o empate), desempata con el menor número de días de asistencia
+    if (Math.abs(diffDeadTime) < 30) {
+      if (a.activeDaysCount !== b.activeDaysCount) {
+        return a.activeDaysCount - b.activeDaysCount;
+      }
+    }
+
+    return diffDeadTime;
   }
 
   function hasInternalOverlap(targetSection, currentCombo) {
@@ -659,14 +684,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* --------------------------------------------------------------------------
-     MÉTRICAS Y SCORING DE OPTIMIZACIÓN LABORAL
+     MÉTRICAS UPAO: 5 MINUTOS DE DIFERENCIA ENTRE BLOQUES = 0 HUECO
      -------------------------------------------------------------------------- */
   function calculateSolutionMetrics(selection) {
     let totalWeeklyMin = 0;
-    let totalGapMin = 0;
+    let totalDeadTimeMin = 0;
     let activeDays = new Set();
     let saturdayWorkConflict = false;
-    let saturdayMinutes = 0;
 
     const dayClassesMap = {};
     for (let i = 0; i < 7; i++) dayClassesMap[i] = [];
@@ -677,36 +701,45 @@ document.addEventListener('DOMContentLoaded', () => {
         activeDays.add(slot.day);
         dayClassesMap[slot.day].push({ start: slot.startMin, end: slot.endMin });
 
-        if (slot.day === 5) {
-          saturdayMinutes += (slot.endMin - slot.startMin);
-          if (slot.startMin < 930) {
-            saturdayWorkConflict = true;
-          }
+        if (slot.day === 5 && slot.startMin < 930) {
+          saturdayWorkConflict = true;
         }
       });
     });
 
+    // TAREA 1: Calcular puntaje de compactación considerando bloques UPAO
     Object.keys(dayClassesMap).forEach(day => {
       const classes = dayClassesMap[day];
       if (classes.length > 1) {
+        // Ordenar clases del día por hora de inicio
         classes.sort((a, b) => a.start - b.start);
         for (let k = 0; k < classes.length - 1; k++) {
-          const gap = classes[k + 1].start - classes[k].end;
-          if (gap > 0) totalGapMin += gap;
+          const gapMin = classes[k + 1].start - classes[k].end;
+          // TAREA 1.3: Si la diferencia es <= 5 min, se cuenta como 0 hueco (patrón UPAO 08:45 -> 08:50)
+          if (gapMin > 5) {
+            totalDeadTimeMin += gapMin;
+          }
         }
       }
     });
 
-    const totalGapHours = (totalGapMin / 60);
+    const totalDeadTimeHours = (totalDeadTimeMin / 60);
     const totalWeeklyHours = (totalWeeklyMin / 60);
+    const activeDaysCount = activeDays.size;
 
-    let score = 10000;
-    if (saturdayWorkConflict) score -= 6000;
-    if (saturdayMinutes > 0) score -= (saturdayMinutes * 3);
-    score -= (totalGapMin * 10);
-    score -= (activeDays.size * 50);
+    let score = 1000000;
+    if (saturdayWorkConflict) score -= 500000;
+    score -= (totalDeadTimeMin * 100);
+    score -= (activeDaysCount * 1000);
 
-    return { score, totalGapHours, totalWeeklyHours, saturdayWorkConflict, saturdayMinutes };
+    return {
+      score,
+      totalDeadTimeMin,
+      totalDeadTimeHours,
+      totalWeeklyHours,
+      activeDaysCount,
+      saturdayWorkConflict
+    };
   }
 
   function diagnoseAndReportConflicts() {
@@ -759,8 +792,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let labelExtra = '';
         if (sol.saturdayWorkConflict) {
           labelExtra = ' (⚠️ Sábado)';
+        } else if (sol.totalDeadTimeMin === 0) {
+          labelExtra = ' (⚡ 0 min muerto)';
         } else {
-          labelExtra = ` (${sol.totalGapHours.toFixed(1)}h huecos)`;
+          labelExtra = ` (${sol.totalDeadTimeHours.toFixed(1)}h tiempo muerto, ${sol.activeDaysCount}d)`;
         }
 
         pill.innerHTML = `Opción ${idx + 1}${labelExtra}`;
@@ -778,9 +813,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('metric-total-courses').textContent = coursesData.length;
     document.getElementById('metric-weekly-hours').textContent = `${currentSol.totalWeeklyHours.toFixed(1)}h`;
-    document.getElementById('metric-gap-hours').textContent = `${currentSol.totalGapHours.toFixed(1)}h`;
+    document.getElementById('metric-gap-hours').textContent = `${currentSol.totalDeadTimeHours.toFixed(1)}h`;
     
-    const efficiencyPct = Math.max(0, Math.min(100, Math.round(100 - (currentSol.totalGapHours * 5))));
+    const efficiencyPct = Math.max(0, Math.min(100, Math.round(100 - (currentSol.totalDeadTimeHours * 5))));
     document.getElementById('metric-efficiency').textContent = `${efficiencyPct}%`;
 
     const courseColorMap = {};
