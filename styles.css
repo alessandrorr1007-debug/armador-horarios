@@ -641,23 +641,20 @@ h1, h2, h3, h4 {
   box-sizing: border-box;
 }
 
-.time-block-label {
+.time-fixed-row {
   position: absolute;
-  left: 3px;
-  right: 3px;
+  left: 0;
+  right: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--primary);
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  border-radius: 6px;
+  border-top: 1px solid var(--border-color);
   box-sizing: border-box;
-  text-align: center;
-  padding: 0 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding-top: 6px;
+  background: rgba(99, 102, 241, 0.03);
 }
 
 .time-slot-line {
