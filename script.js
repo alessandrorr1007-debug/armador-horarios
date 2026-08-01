@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARMADOR DE HORARIOS INTELIGENTE - MOTOR UPAO CON COMPACTACIÓN INTELIGENTE
+   ARMADOR DE HORARIOS INTELIGENTE - CALENDARIO CON MINUTOS EXACTOS UPAO
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -603,7 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
           score: solutionMetrics.score,
           totalDeadTimeMin: solutionMetrics.totalDeadTimeMin,
           totalDeadTimeHours: solutionMetrics.totalDeadTimeHours,
-          totalGapHours: solutionMetrics.totalDeadTimeHours, // Compatibilidad UI
+          totalGapHours: solutionMetrics.totalDeadTimeHours,
           totalWeeklyHours: solutionMetrics.totalWeeklyHours,
           activeDaysCount: solutionMetrics.activeDaysCount,
           saturdayWorkConflict: solutionMetrics.saturdayWorkConflict
@@ -627,21 +627,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return validSolutions;
   }
 
-  /* --------------------------------------------------------------------------
-     FUNCIÓN DE ORDENAMIENTO Y DESEMPATE (TAREAS 1, 2, 3 Y 4)
-     -------------------------------------------------------------------------- */
   function compareSolutions(a, b) {
-    // Si la optimización laboral de Sábados está activa, penaliza fuertemente el trabajo los Sábados
     if (workOptimizationActive) {
       if (a.saturdayWorkConflict !== b.saturdayWorkConflict) {
         return a.saturdayWorkConflict ? 1 : -1;
       }
     }
 
-    // TAREA 1 y 2: Menor tiempo muerto primero
     const diffDeadTime = a.totalDeadTimeMin - b.totalDeadTimeMin;
 
-    // TAREA 4: Si la diferencia es menor a 30 minutos (o empate), desempata con el menor número de días de asistencia
     if (Math.abs(diffDeadTime) < 30) {
       if (a.activeDaysCount !== b.activeDaysCount) {
         return a.activeDaysCount - b.activeDaysCount;
@@ -683,9 +677,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return false;
   }
 
-  /* --------------------------------------------------------------------------
-     MÉTRICAS UPAO: 5 MINUTOS DE DIFERENCIA ENTRE BLOQUES = 0 HUECO
-     -------------------------------------------------------------------------- */
   function calculateSolutionMetrics(selection) {
     let totalWeeklyMin = 0;
     let totalDeadTimeMin = 0;
@@ -707,15 +698,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // TAREA 1: Calcular puntaje de compactación considerando bloques UPAO
     Object.keys(dayClassesMap).forEach(day => {
       const classes = dayClassesMap[day];
       if (classes.length > 1) {
-        // Ordenar clases del día por hora de inicio
         classes.sort((a, b) => a.start - b.start);
         for (let k = 0; k < classes.length - 1; k++) {
           const gapMin = classes[k + 1].start - classes[k].end;
-          // TAREA 1.3: Si la diferencia es <= 5 min, se cuenta como 0 hueco (patrón UPAO 08:45 -> 08:50)
           if (gapMin > 5) {
             totalDeadTimeMin += gapMin;
           }
@@ -772,7 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     6. RENDERIZADO DEL CALENDARIO VISUAL ADAPTATIVO
+     6. RENDERIZADO CON POSICIONAMIENTO PROPORCIONAL EXACTO AL MINUTO
      -------------------------------------------------------------------------- */
   const timetableGrid = document.getElementById('timetable-grid');
   const solutionsPills = document.getElementById('solutions-pills');
@@ -848,13 +836,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
+    // CÁLCULO DE ALTURA PROPORCIONAL AL MINUTO EXACTO (ROW_HEIGHT = 60px por hora = 1px por minuto)
+    const ROW_HEIGHT = 60;
+    const totalHours = maxEndHour - minStartHour;
+    const baseMin = minStartHour * 60;
+    const totalHeightPx = totalHours * ROW_HEIGHT;
+
     timetableGrid.style.gridTemplateColumns = `70px repeat(${numDays}, minmax(130px, 1fr))`;
 
+    // 1. Esquina vacía
     const cornerCell = document.createElement('div');
     cornerCell.className = 'time-header-cell';
     cornerCell.textContent = 'Hora';
     timetableGrid.appendChild(cornerCell);
 
+    // 2. Encabezados de días
     activeDaysList.forEach(dayName => {
       const dayHeader = document.createElement('div');
       dayHeader.className = 'day-header-cell';
@@ -862,48 +858,66 @@ document.addEventListener('DOMContentLoaded', () => {
       timetableGrid.appendChild(dayHeader);
     });
 
+    // 3. Columna izquierda de etiquetas de hora (referencia visual)
+    const timeCol = document.createElement('div');
+    timeCol.className = 'time-labels-column';
     for (let h = minStartHour; h < maxEndHour; h++) {
       const timeCell = document.createElement('div');
       timeCell.className = 'time-header-cell';
+      timeCell.style.height = `${ROW_HEIGHT}px`;
+      timeCell.style.boxSizing = 'border-box';
       timeCell.textContent = `${String(h).padStart(2, '0')}:00`;
-      timetableGrid.appendChild(timeCell);
+      timeCol.appendChild(timeCell);
+    }
+    timetableGrid.appendChild(timeCol);
 
-      for (let d = 0; d < numDays; d++) {
-        const slotCell = document.createElement('div');
-        slotCell.className = 'time-slot-cell';
+    // 4. Columnas de Días con Renderizado Proporcional Exacto
+    for (let d = 0; d < numDays; d++) {
+      const dayCol = document.createElement('div');
+      dayCol.className = 'day-column-body';
+      dayCol.style.position = 'relative';
+      dayCol.style.height = `${totalHeightPx}px`;
 
-        currentSol.selection.forEach(item => {
-          item.slots.forEach(slot => {
-            if (slot.day === d) {
-              const startH = Math.floor(slot.startMin / 60);
-              if (startH === h) {
-                const durationMin = slot.endMin - slot.startMin;
-                const topOffsetPct = ((slot.startMin % 60) / 60) * 100;
-                const heightPx = (durationMin / 60) * 52;
-
-                const eventBlock = document.createElement('div');
-                eventBlock.className = 'event-block';
-                eventBlock.style.background = courseColorMap[item.courseId] ? courseColorMap[item.courseId].bg : '#4f46e5';
-                if (item.isClosedInPortal) {
-                  eventBlock.style.border = '2px dashed #f59e0b';
-                }
-                eventBlock.style.top = `${topOffsetPct}%`;
-                eventBlock.style.height = `${heightPx}px`;
-
-                eventBlock.innerHTML = `
-                  <span class="event-title">${escapeHtml(item.courseName)} ${item.isClosedInPortal ? '🔴' : ''}</span>
-                  <span class="event-section">${escapeHtml(item.sectionCode)}</span>
-                  <span class="event-time">${formatTime(slot.startMin)} - ${formatTime(slot.endMin)}</span>
-                `;
-
-                slotCell.appendChild(eventBlock);
-              }
-            }
-          });
-        });
-
-        timetableGrid.appendChild(slotCell);
+      // Líneas horizontales de guía por hora
+      for (let h = minStartHour; h < maxEndHour; h++) {
+        const lineCell = document.createElement('div');
+        lineCell.className = 'time-slot-line';
+        lineCell.style.height = `${ROW_HEIGHT}px`;
+        lineCell.style.boxSizing = 'border-box';
+        dayCol.appendChild(lineCell);
       }
+
+      // Posicionamiento de bloques de clase al minuto exacto
+      currentSol.selection.forEach(item => {
+        item.slots.forEach(slot => {
+          if (slot.day === d) {
+            // Posición top exacto (minutos transcurridos desde la hora base)
+            const topPx = (slot.startMin - baseMin) * (ROW_HEIGHT / 60);
+            // Altura exacta proporcional a la duración en minutos
+            const durationMin = slot.endMin - slot.startMin;
+            const heightPx = durationMin * (ROW_HEIGHT / 60);
+
+            const eventBlock = document.createElement('div');
+            eventBlock.className = 'event-block';
+            eventBlock.style.background = courseColorMap[item.courseId] ? courseColorMap[item.courseId].bg : '#4f46e5';
+            if (item.isClosedInPortal) {
+              eventBlock.style.border = '2px dashed #f59e0b';
+            }
+            eventBlock.style.top = `${topPx}px`;
+            eventBlock.style.height = `${Math.max(22, heightPx - 1)}px`; // -1px para separación entre bloques contiguos
+
+            eventBlock.innerHTML = `
+              <span class="event-title">${escapeHtml(item.courseName)} ${item.isClosedInPortal ? '🔴' : ''}</span>
+              <span class="event-section">${escapeHtml(item.sectionCode)}</span>
+              <span class="event-time">${formatTime(slot.startMin)} - ${formatTime(slot.endMin)}</span>
+            `;
+
+            dayCol.appendChild(eventBlock);
+          }
+        });
+      });
+
+      timetableGrid.appendChild(dayCol);
     }
   }
 

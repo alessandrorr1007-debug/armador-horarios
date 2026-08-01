@@ -634,17 +634,22 @@ h1, h2, h3, h4 {
   border-bottom: 1px solid var(--border-color);
 }
 
-.time-slot-cell {
+.time-slot-line {
   border-bottom: 1px solid var(--border-color);
   border-left: 1px solid var(--border-color);
-  height: 48px;
+  box-sizing: border-box;
+}
+
+.day-column-body {
+  border-left: 1px solid var(--border-color);
   position: relative;
+  box-sizing: border-box;
 }
 
 .event-block {
   position: absolute;
-  left: 2px;
-  right: 2px;
+  left: 3px;
+  right: 3px;
   border-radius: 6px;
   padding: 0.35rem 0.5rem;
   color: #ffffff;
@@ -655,6 +660,13 @@ h1, h2, h3, h4 {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  box-sizing: border-box;
+  transition: transform var(--transition-fast);
+}
+
+.event-block:hover {
+  z-index: 10;
+  transform: scale(1.02);
 }
 
 .event-title {
