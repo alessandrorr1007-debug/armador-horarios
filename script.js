@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARMADOR DE HORARIOS INTELIGENTE - VALIDACIÓN DE GRUPOS COMPLETOS (T, P, L)
+   ARMADOR DE HORARIOS INTELIGENTE - OPTIMIZACIÓN LABORAL EN PASO 3
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let coursesData = [];
   let generatedSolutions = [];
   let activeSolutionIndex = 0;
+  let workOptimizationActive = true; // Activo por defecto para priorizar trabajo
 
   // Mapeo de Días de la Semana
   const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnClearAll = document.getElementById('btn-clear-all');
   const btnAddMoreCourses = document.getElementById('btn-add-more-courses');
   const btnViewCoursesList = document.getElementById('btn-view-courses-list');
+  const btnOptimizeCompact = document.getElementById('btn-optimize-compact');
 
   themeToggle?.addEventListener('click', () => {
     const isDark = !document.documentElement.getAttribute('data-theme');
@@ -71,6 +73,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnAddMoreCourses?.addEventListener('click', () => goToStep(1));
   btnViewCoursesList?.addEventListener('click', () => goToStep(2));
+
+  btnOptimizeCompact?.addEventListener('click', () => {
+    workOptimizationActive = !workOptimizationActive;
+    if (workOptimizationActive) {
+      btnOptimizeCompact.classList.add('active');
+      btnOptimizeCompact.innerHTML = '<i class="ri-check-double-line"></i> ⚡ Optimización Laboral Activa';
+    } else {
+      btnOptimizeCompact.classList.remove('active');
+      btnOptimizeCompact.innerHTML = '<i class="ri-briefcase-4-line"></i> ⚡ Aplicar Optimización Laboral';
+    }
+
+    if (generatedSolutions.length > 0) {
+      // Reordenar soluciones según el estado de optimización
+      generatedSolutions.sort((a, b) => workOptimizationActive ? (b.score - a.score) : (a.totalGapHours - b.totalGapHours));
+      activeSolutionIndex = 0;
+      renderStep3Results();
+    }
+  });
 
   function updateCourseCountBadges() {
     const count = coursesData.length;
@@ -408,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     5. MOTOR ALGORÍTMICO CON VALIDACIÓN DE GRUPOS COMPLETOS (TEORÍA + LAB + PRÁCTICA)
+     5. MOTOR ALGORÍTMICO CON OPTIMIZACIÓN LABORAL (COMPACTACIÓN + NO SÁBADOS)
      -------------------------------------------------------------------------- */
   const btnGenerateSchedule = document.getElementById('btn-generate-schedule');
 
@@ -466,7 +486,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return mappedSections.map(sec => [sec]);
       }
 
-      // Agrupar por Número de Grupo de Liga
       const clusters = {};
       mappedSections.forEach(sec => {
         const groupMatch = (sec.idLiga || sec.liga || '').match(/\d+/);
@@ -483,7 +502,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const validCourseOptions = [];
 
       Object.entries(clusters).forEach(([clusterKey, { groupNum, subMap }]) => {
-        // Verificar los tipos de componentes requeridos por este grupo en todo el curso
         const allRequiredCompTypes = new Set();
         allSections.forEach(s => {
           const gMatch = (s.idLiga || s.liga || '').match(/\d+/);
@@ -497,9 +515,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const availableSubKeys = Object.keys(subMap);
         const isCompleteGroup = Array.from(allRequiredCompTypes).every(req => availableSubKeys.includes(req));
 
-        // Descartar grupos incompletos (por ejemplo, si el laboratorio de dicho grupo está cerrado)
         if (!isCompleteGroup) {
-          console.warn(`⚠️ Grupo ${clusterKey} descartado por faltarle componentes requeridos (Ej: Laboratorio cerrado).`);
+          console.warn(`⚠️ Grupo ${clusterKey} descartado por incompleto.`);
           return;
         }
 
@@ -538,7 +555,8 @@ document.addEventListener('DOMContentLoaded', () => {
           selection: [...currentSelection],
           score: solutionMetrics.score,
           totalGapHours: solutionMetrics.totalGapHours,
-          totalWeeklyHours: solutionMetrics.totalWeeklyHours
+          totalWeeklyHours: solutionMetrics.totalWeeklyHours,
+          saturdayWorkConflict: solutionMetrics.saturdayWorkConflict
         });
         return;
       }
@@ -591,10 +609,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return false;
   }
 
+  /* --------------------------------------------------------------------------
+     MÉTRICAS Y SCORING DE OPTIMIZACIÓN LABORAL
+     -------------------------------------------------------------------------- */
   function calculateSolutionMetrics(selection) {
     let totalWeeklyMin = 0;
     let totalGapMin = 0;
     let activeDays = new Set();
+    let saturdayWorkConflict = false;
+    let saturdayMinutes = 0;
 
     const dayClassesMap = {};
     for (let i = 0; i < 7; i++) dayClassesMap[i] = [];
@@ -604,6 +627,14 @@ document.addEventListener('DOMContentLoaded', () => {
         totalWeeklyMin += (slot.endMin - slot.startMin);
         activeDays.add(slot.day);
         dayClassesMap[slot.day].push({ start: slot.startMin, end: slot.endMin });
+
+        // Sábado = día 5. Trabajo de 07:00 AM (420 min) a 02:00 PM (840 min) + 1.5h viaje (90 min) = 03:30 PM (930 min)
+        if (slot.day === 5) {
+          saturdayMinutes += (slot.endMin - slot.startMin);
+          if (slot.startMin < 930) {
+            saturdayWorkConflict = true;
+          }
+        }
       });
     });
 
@@ -620,9 +651,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const totalGapHours = (totalGapMin / 60);
     const totalWeeklyHours = (totalWeeklyMin / 60);
-    const score = 1000 - (totalGapMin * 2) - (activeDays.size * 20);
 
-    return { score, totalGapHours, totalWeeklyHours };
+    // Algoritmo de Ranking Profesional:
+    // 1) Penalización máxima si el Sábado choca con el trabajo (07:00 AM - 03:30 PM)
+    // 2) Penalización por huecos libres entre clases (compactación)
+    // 3) Penalización leve por más días asistidos
+    let score = 10000;
+    if (saturdayWorkConflict) score -= 6000;
+    if (saturdayMinutes > 0) score -= (saturdayMinutes * 3);
+    score -= (totalGapMin * 10); // Fuerte penalización por huecos
+    score -= (activeDays.size * 50);
+
+    return { score, totalGapHours, totalWeeklyHours, saturdayWorkConflict, saturdayMinutes };
   }
 
   function diagnoseAndReportConflicts() {
@@ -671,7 +711,15 @@ document.addEventListener('DOMContentLoaded', () => {
       generatedSolutions.slice(0, 5).forEach((sol, idx) => {
         const pill = document.createElement('button');
         pill.className = `sol-pill ${idx === activeSolutionIndex ? 'active' : ''}`;
-        pill.innerHTML = `Opción ${idx + 1} (${sol.totalGapHours.toFixed(1)}h huecos)`;
+        
+        let labelExtra = '';
+        if (sol.saturdayWorkConflict) {
+          labelExtra = ' (⚠️ Sábado)';
+        } else {
+          labelExtra = ` (${sol.totalGapHours.toFixed(1)}h huecos)`;
+        }
+
+        pill.innerHTML = `Opción ${idx + 1}${labelExtra}`;
         pill.addEventListener('click', () => {
           activeSolutionIndex = idx;
           renderStep3Results();
