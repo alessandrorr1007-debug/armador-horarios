@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARMADOR DE HORARIOS INTELIGENTE - MOTOR CON LIGAS DE GRUPO (T + L)
+   ARMADOR DE HORARIOS INTELIGENTE - SIMULACIÓN DE SECCIONES CERRADAS
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let generatedSolutions = [];
   let activeSolutionIndex = 0;
   let workOptimizationActive = true; // Activo por defecto para priorizar trabajo
+  let simulateClosedMode = false;     // Modo simulación para incluir secciones cerradas
 
   // Mapeo de Días de la Semana
   const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -50,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAddMoreCourses = document.getElementById('btn-add-more-courses');
   const btnViewCoursesList = document.getElementById('btn-view-courses-list');
   const btnOptimizeCompact = document.getElementById('btn-optimize-compact');
+  const toggleIncludeClosed = document.getElementById('toggle-include-closed');
 
   themeToggle?.addEventListener('click', () => {
     const isDark = !document.documentElement.getAttribute('data-theme');
@@ -73,6 +75,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnAddMoreCourses?.addEventListener('click', () => goToStep(1));
   btnViewCoursesList?.addEventListener('click', () => goToStep(2));
+
+  // Toggle global de simulación de secciones cerradas
+  toggleIncludeClosed?.addEventListener('change', (e) => {
+    simulateClosedMode = e.target.checked;
+    coursesData.forEach(course => {
+      course.sections.forEach(sec => {
+        if (sec.estado === 'CERRADO') {
+          sec.incluirEnArmado = simulateClosedMode;
+        }
+      });
+    });
+    renderStep2Editor();
+  });
 
   btnOptimizeCompact?.addEventListener('click', () => {
     workOptimizationActive = !workOptimizationActive;
@@ -130,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     2. PARSER DE TEXTO UNIVERSAL (CON tipoLiga Y grupoLiga)
+     2. PARSER DE TEXTO UNIVERSAL
      -------------------------------------------------------------------------- */
   function parseScheduleText(text) {
     if (!text || !text.trim()) return [];
@@ -209,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
           liga = ligaMatch[2];
         }
 
-        // TAREA 1: Extraer tipoLiga ('T' o 'L') y grupoLiga (número al final de ID LIGA)
         let tipoLiga = null;
         let grupoLiga = null;
         if (idLiga) {
@@ -327,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     4. RENDERIZADO PASO 2
+     4. RENDERIZADO PASO 2 (PERMITE ACTIVAR CERRADAS PARA SIMULACIÓN)
      -------------------------------------------------------------------------- */
   const coursesEditorList = document.getElementById('courses-editor-list');
 
@@ -367,8 +381,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       course.sections.forEach((sec, sIdx) => {
         const chip = document.createElement('div');
-        const isClosed = sec.estado === 'CERRADO' || sec.incluirEnArmado === false;
-        chip.className = `section-chip ${isClosed ? 'chip-closed' : ''}`;
+        const isOriginallyClosed = sec.estado === 'CERRADO';
+        const isIncluded = sec.incluirEnArmado !== false;
+
+        chip.className = `section-chip ${!isIncluded ? 'chip-closed' : ''}`;
 
         const secCodeLabel = `Sec ${sec.secc || '01'} (NRC ${sec.nrc || 'N/A'})`;
         const docLabel = sec.docente ? sec.docente : 'Docente asignado';
@@ -376,6 +392,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const ligaBadge = (sec.idLiga || sec.liga)
           ? `<span class="badge-status" style="background: rgba(99,102,241,0.15); color: #818cf8; font-size: 0.75rem; margin-left: 0.3rem;"><i class="ri-links-line"></i> Grupo ${escapeHtml(sec.grupoLiga || '1')}: ${escapeHtml(sec.tipoLiga || 'T')} (${escapeHtml(sec.idLiga || 'N/A')})</span>`
           : '';
+
+        let badgeClass = 'badge-closed';
+        let badgeText = '🔴 CERRADO';
+
+        if (isIncluded) {
+          if (isOriginallyClosed) {
+            badgeClass = 'badge-simulated';
+            badgeText = '🟡 SIMULADO (CERRADO EN PORTAL)';
+          } else {
+            badgeClass = 'badge-open';
+            badgeText = '🟢 ABIERTO';
+          }
+        }
 
         let slotsHtml = '';
         if (sec.slots && sec.slots.length > 0) {
@@ -392,8 +421,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="section-chip-header">
             <div>
               <span class="section-code-badge">${escapeHtml(secCodeLabel)}</span>
-              <span class="badge-status ${isClosed ? 'badge-closed' : 'badge-open'}">
-                ${isClosed ? '🔴 CERRADO' : '🟢 ABIERTO'}
+              <span class="badge-status ${badgeClass}">
+                ${badgeText}
               </span>
               ${ligaBadge}
             </div>
@@ -410,17 +439,28 @@ document.addEventListener('DOMContentLoaded', () => {
           </ul>
 
           <label class="sec-toggle-label">
-            <input type="checkbox" class="sec-avail-checkbox" ${sec.incluirEnArmado ? 'checked' : ''} data-cidx="${cIdx}" data-sidx="${sIdx}">
-            <span>Incluir esta sección en el armado</span>
+            <input type="checkbox" class="sec-avail-checkbox" ${isIncluded ? 'checked' : ''} data-cidx="${cIdx}" data-sidx="${sIdx}">
+            <span>${isOriginallyClosed ? '🔓 Activar para simular este horario' : 'Incluir esta sección en el armado'}</span>
           </label>
         `;
 
         chip.querySelector('.sec-avail-checkbox').addEventListener('change', (e) => {
           sec.incluirEnArmado = e.target.checked;
-          sec.estado = sec.incluirEnArmado ? 'ABIERTO' : 'CERRADO';
           chip.classList.toggle('chip-closed', !sec.incluirEnArmado);
-          chip.querySelector('.badge-status').className = `badge-status ${sec.incluirEnArmado ? 'badge-open' : 'badge-closed'}`;
-          chip.querySelector('.badge-status').textContent = sec.incluirEnArmado ? '🟢 ABIERTO' : '🔴 CERRADO';
+          const statusBadge = chip.querySelector('.badge-status');
+
+          if (sec.incluirEnArmado) {
+            if (isOriginallyClosed) {
+              statusBadge.className = 'badge-status badge-simulated';
+              statusBadge.textContent = '🟡 SIMULADO (CERRADO EN PORTAL)';
+            } else {
+              statusBadge.className = 'badge-status badge-open';
+              statusBadge.textContent = '🟢 ABIERTO';
+            }
+          } else {
+            statusBadge.className = 'badge-status badge-closed';
+            statusBadge.textContent = '🔴 CERRADO';
+          }
         });
 
         chip.querySelector('.btn-del-sec').addEventListener('click', () => {
@@ -437,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     5. MOTOR ALGORÍTMICO POR GRUPOS LIGADOS (TAREAS 2, 3, 4 y 6)
+     5. MOTOR ALGORÍTMICO DE ARMADO DE HORARIO (PERMITE SIMULAR CERRADAS)
      -------------------------------------------------------------------------- */
   const btnGenerateSchedule = document.getElementById('btn-generate-schedule');
 
@@ -463,8 +503,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function solveSchedulesWithLigas(courses) {
     const courseOptionsList = courses.map(course => {
       const allSections = course.sections;
-      // TAREA 5: Filtrar secciones abiertas e incluidas
-      const activeSections = allSections.filter(s => s.incluirEnArmado !== false && s.estado !== 'CERRADO');
+      // Incluir cualquier sección con incluirEnArmado === true (incluso cerradas si fueron activadas para simulación)
+      const activeSections = allSections.filter(s => s.incluirEnArmado === true || (simulateClosedMode && s.incluirEnArmado !== false));
       
       const mappedSections = activeSections.map(s => {
         const slotObjects = (s.slots && s.slots.length > 0) ? s.slots.map(sl => {
@@ -487,18 +527,17 @@ document.addEventListener('DOMContentLoaded', () => {
           idLiga: s.idLiga,
           tipoLiga: s.tipoLiga || (s.idLiga ? s.idLiga.charAt(0).toUpperCase() : null),
           grupoLiga: s.grupoLiga || (s.idLiga ? s.idLiga.replace(/\D/g, '') : null),
+          isClosedInPortal: s.estado === 'CERRADO',
           slots: slotObjects
         };
       });
 
-      // TAREA 4: Si un curso no tiene ningún campo ID LIGA, se trata como secciones sueltas
       const hasLigas = mappedSections.some(s => s.grupoLiga);
 
       if (!hasLigas) {
         return mappedSections.map(sec => [sec]);
       }
 
-      // TAREA 2: Agrupar todas las secciones del curso por grupoLiga y por tipoLiga ('T' o 'L')
       const groupStructures = {};
       allSections.forEach(s => {
         const gNum = s.grupoLiga || (s.idLiga ? s.idLiga.replace(/\D/g, '') : null);
@@ -520,14 +559,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const validCourseOptions = [];
 
-      // TAREA 3: Armar combinaciones para cada grupo completo (1 opción T + 1 opción L de dicho grupo)
       Object.entries(activeGroups).forEach(([gNum, typeMap]) => {
         const requiredTypes = groupStructures[gNum] ? Array.from(groupStructures[gNum]) : Object.keys(typeMap);
         const availableTypes = Object.keys(typeMap);
 
         const isCompleteGroup = requiredTypes.every(req => availableTypes.includes(req));
         if (!isCompleteGroup) {
-          console.warn(`⚠️ Grupo ${gNum} descartado por faltar componentes abiertos (ej. Práctica cerrada).`);
+          console.warn(`⚠️ Grupo ${gNum} descartado por incompleto.`);
           return;
         }
 
@@ -559,7 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const validSolutions = [];
 
-    // TAREA 6: Backtracking reserva simultáneamente la sección T Y la sección L del grupo elegido
     function backtrack(courseIndex, currentSelection) {
       if (courseIndex === courseOptionsList.length) {
         const solutionMetrics = calculateSolutionMetrics(currentSelection);
@@ -680,9 +717,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const conflictPairs = [];
 
     coursesData.forEach(c => {
-      const openSecs = c.sections.filter(s => s.incluirEnArmado !== false && s.estado !== 'CERRADO');
+      const openSecs = c.sections.filter(s => s.incluirEnArmado === true || (simulateClosedMode && s.incluirEnArmado !== false));
       if (openSecs.length === 0) {
-        conflictPairs.push(`El curso "${c.codigo} - ${c.nombre}" no tiene ninguna sección o grupo de ligas abiertas.`);
+        conflictPairs.push(`El curso "${c.codigo} - ${c.nombre}" no tiene ninguna sección o grupo de ligas activas. (Activa la casilla o activa "🔓 Simular Secciones Cerradas").`);
       }
     });
 
@@ -754,7 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
     timetableLegend.innerHTML = currentSol.selection.map(item => `
       <div class="legend-item">
         <span class="legend-dot" style="background: ${courseColorMap[item.courseId] ? courseColorMap[item.courseId].bg : '#4f46e5'}"></span>
-        <span><strong>${escapeHtml(item.courseName)}</strong> (${escapeHtml(item.sectionCode)})</span>
+        <span><strong>${escapeHtml(item.courseName)}</strong> (${escapeHtml(item.sectionCode)}${item.isClosedInPortal ? ' 🔴' : ''})</span>
       </div>
     `).join('');
 
@@ -812,11 +849,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const eventBlock = document.createElement('div');
                 eventBlock.className = 'event-block';
                 eventBlock.style.background = courseColorMap[item.courseId] ? courseColorMap[item.courseId].bg : '#4f46e5';
+                if (item.isClosedInPortal) {
+                  eventBlock.style.border = '2px dashed #f59e0b';
+                }
                 eventBlock.style.top = `${topOffsetPct}%`;
                 eventBlock.style.height = `${heightPx}px`;
 
                 eventBlock.innerHTML = `
-                  <span class="event-title">${escapeHtml(item.courseName)}</span>
+                  <span class="event-title">${escapeHtml(item.courseName)} ${item.isClosedInPortal ? '🔴' : ''}</span>
                   <span class="event-section">${escapeHtml(item.sectionCode)}</span>
                   <span class="event-time">${formatTime(slot.startMin)} - ${formatTime(slot.endMin)}</span>
                 `;

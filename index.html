@@ -116,10 +116,14 @@
           <h2><i class="ri-checkbox-multiple-line"></i> Paso 2: Cursos y Secciones Registradas</h2>
           <p>Confirma los datos de tus cursos. Las secciones con cupos agotados (<span class="badge-status badge-closed-text">🔴 CERRADO</span>) o desmarcadas se omitirán del armado.</p>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
           <span id="course-count-badge" class="badge-status badge-open" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">
             Cursos cargados: 0
           </span>
+          <label class="toggle-closed-sim-label" style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #d97706; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.4rem 0.8rem; border-radius: 20px;">
+            <input type="checkbox" id="toggle-include-closed" style="accent-color: #f59e0b; cursor: pointer;">
+            <span>🔓 Simular (Incluir Secciones CERRADAS)</span>
+          </label>
           <button id="btn-clear-all" class="btn btn-secondary" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.4);">
             <i class="ri-delete-bin-line"></i> Vaciar Lista
           </button>
