@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Armador de Horarios Inteligente | Generador Profesional de Horarios</title>
+  <meta name="description" content="Plataforma profesional para generar la mejor combinación de horarios universitarios sin cruces de clases.">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Remix Icon -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet"/>
+
+  <!-- External Library (PNG Export) -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="container header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="ri-calendar-schedule-line"></i>
+        </div>
+        <div>
+          <h1 class="brand-title">Armador de Horarios <span class="gradient-text">Inteligente</span></h1>
+          <p class="brand-subtitle">Optimizador Profesional de Horarios Universitarios</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn-icon" aria-label="Cambiar tema">
+          <i class="ri-moon-line" id="theme-icon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Container -->
+  <main class="container main-content">
+
+    <!-- Step Navigation Bar -->
+    <nav class="steps-tracker" aria-label="Pasos de la aplicación">
+      <div class="step-item active" id="step-nav-1">
+        <span class="step-number">1</span>
+        <span class="step-label">Pegar Texto de Cursos</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item" id="step-nav-2">
+        <span class="step-number">2</span>
+        <span class="step-label">Verificar Cursos & Cupos</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item" id="step-nav-3">
+        <span class="step-number">3</span>
+        <span class="step-label">Horario Optimizado</span>
+      </div>
+    </nav>
+
+
+    <!-- ==========================================================================
+       PASO 1: PEGAR TEXTO DE CURSOS DEL PORTAL
+       ========================================================================== -->
+    <section class="step-card" id="step-1-section">
+      <div class="card-header">
+        <h2><i class="ri-file-text-line"></i> Paso 1: Cargar Horarios de tu Portal Académico</h2>
+        <p>Copia y pega el texto con la información de tus cursos directamente desde tu portal académico. Puedes agregar los cursos de uno en uno para acumularlos en tu lista.</p>
+      </div>
+
+      <!-- Error Alert Container -->
+      <div id="api-error-card" class="alert-card alert-warning mb-3" style="display: none; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.4); color: var(--danger);">
+        <div class="alert-icon"><i class="ri-error-warning-fill"></i></div>
+        <div style="flex: 1;">
+          <h4 id="api-error-title" style="color: var(--danger); font-size: 1.05rem; margin-bottom: 0.25rem;">Atención</h4>
+          <p id="api-error-desc" style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 0.5rem;">Mensaje de aviso...</p>
+        </div>
+      </div>
+
+      <!-- Main Text Input Area -->
+      <div class="form-group">
+        <textarea id="text-input" class="text-area" rows="14" placeholder="Pega aquí el texto copiado de tu portal universitario..."></textarea>
+      </div>
+
+      <div class="card-footer space-between">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span id="course-count-badge-step1" class="badge-status badge-open" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">
+            Cursos cargados: 0
+          </span>
+          <button id="btn-view-courses-list" class="btn btn-secondary" style="display: none;">
+            <i class="ri-eye-line"></i> Ver Cursos Cargados
+          </button>
+        </div>
+        <button id="btn-process-input" class="btn btn-primary btn-large">
+          <i class="ri-add-circle-line"></i> Procesar y Agregar Curso
+        </button>
+      </div>
+    </section>
+
+
+    <!-- ==========================================================================
+       PASO 2: VERIFICACIÓN Y ESTADO DE SECCIONES (ABIERTO / CERRADO)
+       ========================================================================== -->
+    <section class="step-card" id="step-2-section" style="display: none;">
+      <div class="card-header flex-header">
+        <div>
+          <h2><i class="ri-checkbox-multiple-line"></i> Paso 2: Cursos y Secciones Registradas</h2>
+          <p>Confirma los datos de tus cursos. Las secciones con cupos agotados (<span class="badge-status badge-closed-text">🔴 CERRADO</span>) o desmarcadas se omitirán del armado.</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span id="course-count-badge" class="badge-status badge-open" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">
+            Cursos cargados: 0
+          </span>
+          <button id="btn-clear-all" class="btn btn-secondary" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.4);">
+            <i class="ri-delete-bin-line"></i> Vaciar Lista
+          </button>
+          <button id="btn-add-more-courses" class="btn btn-primary">
+            <i class="ri-add-line"></i> Agregar Otro Curso
+          </button>
+        </div>
+      </div>
+
+      <!-- Course List Editable Container -->
+      <div id="courses-editor-list" class="courses-editor-list"></div>
+
+      <div class="card-footer space-between">
+        <button id="btn-back-to-step1" class="btn btn-secondary">
+          <i class="ri-arrow-left-line"></i> Volver al Paso 1
+        </button>
+        <button id="btn-generate-schedule" class="btn btn-success btn-large">
+          <i class="ri-calendar-check-line"></i> Generar Horario Optimizado
+        </button>
+      </div>
+    </section>
+
+
+    <!-- ==========================================================================
+       PASO 3: HORARIO OPTIMIZADO & CALENDARIO VISUAL
+       ========================================================================== -->
+    <section class="step-card" id="step-3-section" style="display: none;">
+      <div class="card-header flex-header">
+        <div>
+          <h2><i class="ri-calendar-check-line"></i> Paso 3: Horario Optimizado Generado</h2>
+          <p id="schedule-summary-text">Se han evaluado todas las combinaciones posibles respetando amarrados de ligas y sin colisiones de horario.</p>
+        </div>
+        <div class="schedule-actions">
+          <button id="btn-export-image" class="btn btn-primary">
+            <i class="ri-download-2-line"></i> Descargar Horario (PNG)
+          </button>
+          <button id="btn-edit-courses-again" class="btn btn-secondary">
+            <i class="ri-edit-line"></i> Ajustar Cursos
+          </button>
+        </div>
+      </div>
+
+      <!-- Alert for Conflicts -->
+      <div id="conflict-alert" class="alert-card alert-warning" style="display: none;">
+        <div class="alert-icon"><i class="ri-error-warning-fill"></i></div>
+        <div>
+          <h4>Conflicto de Horario Detectado</h4>
+          <p id="conflict-alert-desc">No fue posible encontrar una combinación libre de cruces con las secciones seleccionadas.</p>
+          <ul id="conflict-list" class="conflict-list"></ul>
+        </div>
+      </div>
+
+      <!-- Solutions Selector Bar -->
+      <div id="solutions-selector-bar" class="solutions-bar" style="display: none;">
+        <span><i class="ri-stack-line"></i> Opciones de Horario Disponibles:</span>
+        <div id="solutions-pills" class="solutions-pills"></div>
+      </div>
+
+      <!-- Metrics Badges -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <i class="ri-book-open-line metric-icon"></i>
+          <div>
+            <strong id="metric-total-courses">0</strong>
+            <span>Cursos Inscritos</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <i class="ri-time-line metric-icon"></i>
+          <div>
+            <strong id="metric-weekly-hours">0h</strong>
+            <span>Horas Lectivas / Semanal</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <i class="ri-rest-time-line metric-icon"></i>
+          <div>
+            <strong id="metric-gap-hours">0h</strong>
+            <span>Huecos Libres entre Clases</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <i class="ri-sparkles-line metric-icon text-accent"></i>
+          <div>
+            <strong id="metric-efficiency">100%</strong>
+            <span>Índice de Compactación</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timetable Calendar Container -->
+      <div id="timetable-wrapper" class="timetable-wrapper">
+        <div class="timetable-header-banner">
+          <div>
+            <h3 id="print-timetable-title">Horario de Clases Optimizado</h3>
+            <p id="print-timetable-subtitle">Generado con Armador de Horarios Inteligente</p>
+          </div>
+          <div class="timetable-legend" id="timetable-legend"></div>
+        </div>
+
+        <div class="timetable-scroll-container">
+          <div id="timetable-grid" class="timetable-grid"></div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Script -->
+  <script src="script.js"></script>
+</body>
+</html>
