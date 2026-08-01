@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARMADOR DE HORARIOS INTELIGENTE - ETIQUETAS DINÁMICAS AL MINUTO REAL UPAO
+   ARMADOR DE HORARIOS INTELIGENTE - ETIQUETAS DE BLOQUES COMPLETOS ("07:00 - 08:45 AM")
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -760,7 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     6. RENDERIZADO DEL CALENDARIO CON ETIQUETAS DINÁMICAS (TAREAS 1, 2, 3, 4 y 5)
+     6. RENDERIZADO CON FILAS DE BLOQUES COMPLETOS DE TIEMPO ("07:00 - 08:45 AM")
      -------------------------------------------------------------------------- */
   const timetableGrid = document.getElementById('timetable-grid');
   const solutionsPills = document.getElementById('solutions-pills');
@@ -824,33 +824,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeDaysList = hasSunday ? ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] : ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const numDays = activeDaysList.length;
 
-    // TAREA 1 y 2: Extraer el conjunto ÚNICO de horas de inicio y fin reales de las clases cargadas
-    const timePointsSet = new Set();
+    // TAREA 1: Agrupar horas de las clases cargadas en BLOQUES DE RANGO COMPLETO [startMin, endMin]
+    const blockMap = new Map();
+
     currentSol.selection.forEach(item => {
       item.slots.forEach(slot => {
-        timePointsSet.add(slot.startMin);
-        timePointsSet.add(slot.endMin);
+        const key = `${slot.startMin}-${slot.endMin}`;
+        if (!blockMap.has(key)) {
+          blockMap.set(key, { startMin: slot.startMin, endMin: slot.endMin });
+        }
       });
     });
 
-    let timePoints = Array.from(timePointsSet).sort((a, b) => a - b);
+    // TAREA 5: Ordenar cronológicamente de menor a mayor
+    let timeBlocks = Array.from(blockMap.values()).sort((a, b) => a.startMin - b.startMin);
 
-    // TAREA 3: Respaldos de bloques típicos UPAO si estuviera vacío
-    if (timePoints.length < 2) {
-      timePoints = [420, 525, 530, 635, 640, 745, 860, 965, 970, 1075, 1080, 1190, 1295];
+    // TAREA 3: Respaldo de bloques estándar UPAO si el calendario estuviera vacío o sin bloques
+    if (timeBlocks.length === 0) {
+      timeBlocks = [
+        { startMin: 420, endMin: 525 },  // 07:00 - 08:45 AM
+        { startMin: 530, endMin: 635 },  // 08:50 - 10:35 AM
+        { startMin: 640, endMin: 745 },  // 10:40 - 12:25 PM
+        { startMin: 860, endMin: 965 },  // 02:20 - 04:05 PM
+        { startMin: 970, endMin: 1075 }, // 04:10 - 05:55 PM
+        { startMin: 1080, endMin: 1185 },// 06:00 - 07:45 PM
+        { startMin: 1190, endMin: 1295 } // 07:50 - 09:35 PM
+      ];
     }
 
-    const minStartMin = timePoints[0];
-    const maxEndMin = timePoints[timePoints.length - 1];
+    const minStartMin = Math.min(...timeBlocks.map(b => b.startMin));
+    const maxEndMin = Math.max(...timeBlocks.map(b => b.endMin));
     const totalDurationMin = Math.max(60, maxEndMin - minStartMin);
 
-    // TAREA 4: Escala proporcional de minutos a píxeles (1.2px por minuto para excelente legibilidad)
+    // TAREA 2 y 3: Altura proporcional a la duración real del bloque
     const PX_PER_MIN = 1.3;
     const totalHeightPx = Math.max(350, totalDurationMin * PX_PER_MIN);
 
-    timetableGrid.style.gridTemplateColumns = `85px repeat(${numDays}, minmax(130px, 1fr))`;
+    timetableGrid.style.gridTemplateColumns = `125px repeat(${numDays}, minmax(130px, 1fr))`;
 
-    // 1. Esquina superior
+    // 1. Esquina superior "Hora"
     const cornerCell = document.createElement('div');
     cornerCell.className = 'time-header-cell';
     cornerCell.textContent = 'Hora';
@@ -864,51 +876,60 @@ document.addEventListener('DOMContentLoaded', () => {
       timetableGrid.appendChild(dayHeader);
     });
 
-    // 3. Columna izquierda de ETIQUETAS DINÁMICAS (Horas reales de inicio/fin)
+    // 3. Columna izquierda de FILAS DE BLOQUE DE TIEMPO COMPLETO ("07:00 - 08:45 AM")
     const timeCol = document.createElement('div');
     timeCol.className = 'time-labels-column';
     timeCol.style.position = 'relative';
     timeCol.style.height = `${totalHeightPx}px`;
 
-    timePoints.forEach(m => {
-      const topPx = (m - minStartMin) * PX_PER_MIN;
-      const label = document.createElement('div');
-      label.className = 'time-dynamic-label';
-      label.style.position = 'absolute';
-      label.style.top = `${topPx}px`;
-      label.style.transform = 'translateY(-50%)';
-      label.style.width = '100%';
-      label.style.fontSize = '0.72rem';
-      label.style.fontWeight = '700';
-      label.style.color = 'var(--primary)';
-      label.style.textAlign = 'center';
-      label.textContent = formatTime12H(m);
-      timeCol.appendChild(label);
+    timeBlocks.forEach(b => {
+      const topPx = (b.startMin - minStartMin) * PX_PER_MIN;
+      const durationMin = b.endMin - b.startMin;
+      const heightPx = durationMin * PX_PER_MIN;
+
+      const blockLabel = document.createElement('div');
+      blockLabel.className = 'time-block-label';
+      blockLabel.style.top = `${topPx}px`;
+      blockLabel.style.height = `${Math.max(22, heightPx - 1)}px`;
+      blockLabel.textContent = formatBlockRange(b.startMin, b.endMin);
+      timeCol.appendChild(blockLabel);
     });
     timetableGrid.appendChild(timeCol);
 
-    // 4. Columnas de Días con Líneas de Guía en Horas Reales y Bloques Proporcionales (TAREA 5)
+    // 4. Columnas de Días con Líneas de Guía de Bloques y Posicionamiento Proporcional (TAREA 3 y 4)
     for (let d = 0; d < numDays; d++) {
       const dayCol = document.createElement('div');
       dayCol.className = 'day-column-body';
       dayCol.style.position = 'relative';
       dayCol.style.height = `${totalHeightPx}px`;
 
-      // Renderizar líneas de guía horizontales exactamente en los minutos reales de las clases
-      timePoints.forEach(m => {
-        const topPx = (m - minStartMin) * PX_PER_MIN;
-        const line = document.createElement('div');
-        line.className = 'time-slot-line';
-        line.style.position = 'absolute';
-        line.style.top = `${topPx}px`;
-        line.style.left = '0';
-        line.style.right = '0';
-        line.style.borderTop = '1px dashed var(--border-color)';
-        line.style.opacity = '0.6';
-        dayCol.appendChild(line);
+      // Renderizar líneas horizontales de guía en el inicio y fin de cada bloque
+      timeBlocks.forEach(b => {
+        const topPx = (b.startMin - minStartMin) * PX_PER_MIN;
+        const endPx = (b.endMin - minStartMin) * PX_PER_MIN;
+
+        const startLine = document.createElement('div');
+        startLine.className = 'time-slot-line';
+        startLine.style.position = 'absolute';
+        startLine.style.top = `${topPx}px`;
+        startLine.style.left = '0';
+        startLine.style.right = '0';
+        startLine.style.borderTop = '1px dashed var(--border-color)';
+        startLine.style.opacity = '0.5';
+        dayCol.appendChild(startLine);
+
+        const endLine = document.createElement('div');
+        endLine.className = 'time-slot-line';
+        endLine.style.position = 'absolute';
+        endLine.style.top = `${endPx}px`;
+        endLine.style.left = '0';
+        endLine.style.right = '0';
+        endLine.style.borderTop = '1px dashed var(--border-color)';
+        endLine.style.opacity = '0.5';
+        dayCol.appendChild(endLine);
       });
 
-      // Renderizar bloques de clase alineados dinámicamente
+      // Renderizar bloques de clase alineados dinámicamente con su fila de hora correspondiente
       currentSol.selection.forEach(item => {
         item.slots.forEach(slot => {
           if (slot.day === d) {
@@ -984,19 +1005,25 @@ document.addEventListener('DOMContentLoaded', () => {
   /* --------------------------------------------------------------------------
      8. UTILIDADES
      -------------------------------------------------------------------------- */
+  function formatBlockRange(startMin, endMin) {
+    const startStr = formatTimeShort(startMin);
+    const endStr = formatTimeShort(endMin);
+    const endPeriod = endMin >= 720 ? 'PM' : 'AM';
+    return `${startStr} - ${endStr} ${endPeriod}`;
+  }
+
+  function formatTimeShort(totalMinutes) {
+    let hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    if (hours > 12) hours -= 12;
+    if (hours === 0) hours = 12;
+    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  }
+
   function formatTime(totalMinutes) {
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;
     return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-  }
-
-  function formatTime12H(totalMinutes) {
-    let hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    const period = hours >= 12 ? 'PM' : 'AM';
-    if (hours > 12) hours -= 12;
-    if (hours === 0) hours = 12;
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${period}`;
   }
 
   function timeStringToMin(timeStr) {
