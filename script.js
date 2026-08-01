@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARMADOR DE HORARIOS INTELIGENTE - CUADRÍCULA FIJA Y HARDCODEADA UPAO
+   ARMADOR DE HORARIOS INTELIGENTE - FILTRADO ESTRICTO DE CERRADOS Y CUADRÍCULA UPAO
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
       course.sections.forEach((sec, sIdx) => {
         const chip = document.createElement('div');
         const isOriginallyClosed = sec.estado === 'CERRADO';
-        const isIncluded = sec.incluirEnArmado !== false;
+        const isIncluded = sec.incluirEnArmado === true;
 
         chip.className = `section-chip ${!isIncluded ? 'chip-closed' : ''}`;
 
@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     5. MOTOR ALGORÍTMICO Y FILTRADO ESTRICTO DE CERRADOS (TAREA 3)
+     5. MOTOR ALGORÍTMICO Y FILTRADO ESTRICTO DE CERRADOS (RECORDATORIO CRÍTICO)
      -------------------------------------------------------------------------- */
   const btnGenerateSchedule = document.getElementById('btn-generate-schedule');
 
@@ -503,13 +503,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const courseOptionsList = courses.map(course => {
       const allSections = course.sections;
       
-      // TAREA 3: FILTRADO ESTRICTO. NUNCA incluir secciones CERRADAS o desmarcadas (incluirEnArmado === false)
-      // a menos que el usuario haya activado el interruptor global de simulación.
+      // RECORDATORIO CRÍTICO: FILTRADO ESTRICTO MANDATORIO.
+      // Descartar CUALQUIER sección con estado === 'CERRADO' o incluirEnArmado !== true.
       const activeSections = allSections.filter(s => {
         if (simulateClosedMode) {
-          return s.incluirEnArmado !== false;
+          return s.incluirEnArmado === true;
         }
-        return s.incluirEnArmado === true && s.estado !== 'CERRADO';
+        return s.estado !== 'CERRADO' && s.incluirEnArmado === true;
       });
       
       const mappedSections = activeSections.map(s => {
@@ -746,9 +746,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const conflictPairs = [];
 
     coursesData.forEach(c => {
-      const openSecs = c.sections.filter(s => s.incluirEnArmado === true || (simulateClosedMode && s.incluirEnArmado !== false));
+      const openSecs = c.sections.filter(s => s.incluirEnArmado === true && (simulateClosedMode || s.estado !== 'CERRADO'));
       if (openSecs.length === 0) {
-        conflictPairs.push(`El curso "${c.codigo} - ${c.nombre}" no tiene ninguna sección o grupo de ligas activas. (Activa la casilla o activa "🔓 Simular Secciones Cerradas").`);
+        conflictPairs.push(`El curso "${c.codigo} - ${c.nombre}" no tiene ninguna sección abierta disponible (NRC cerrado o sin vacante).`);
       }
     });
 
@@ -768,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     6. RENDERIZADO CON LA CUADRÍCULA FIJA HARDCODEADA UPAO (TAREA 1 Y TAREA 2)
+     6. RENDERIZADO CON CUADRÍCULA FIJA UPAO (CENTRADO VERTICAL DE ETIQUETAS Y LÍNEAS VERTICALES)
      -------------------------------------------------------------------------- */
   const timetableGrid = document.getElementById('timetable-grid');
   const solutionsPills = document.getElementById('solutions-pills');
@@ -832,7 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeDaysList = hasSunday ? ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] : ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const numDays = activeDaysList.length;
 
-    // TAREA 1: LISTA FIJA Y HARDCODEADA DE BLOQUES REALES UPAO
+    // LISTA FIJA Y HARDCODEADA DE BLOQUES REALES UPAO
     const UPAO_ROW_BOUNDARIES = [
       { startMin: 420,  endMin: 530,  label: '07:00 AM', durationMin: 110 }, // 07:00 - 08:50 (1h 50m)
       { startMin: 530,  endMin: 640,  label: '08:50 AM', durationMin: 110 }, // 08:50 - 10:40 (1h 50m)
@@ -867,7 +867,7 @@ document.addEventListener('DOMContentLoaded', () => {
       timetableGrid.appendChild(dayHeader);
     });
 
-    // 3. Columna izquierda con ETIQUETAS FIJAS HARDCODEADAS UPAO (07:00 AM, 08:50 AM...)
+    // 3. Columna izquierda con ETIQUETAS CENTRADAS VERTICALMENTE EN SU CELDA (AJUSTE VISUAL 2)
     const timeCol = document.createElement('div');
     timeCol.className = 'time-labels-column';
     timeCol.style.position = 'relative';
@@ -886,7 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     timetableGrid.appendChild(timeCol);
 
-    // 4. Columnas de Días con Líneas de Guía Fijas UPAO y Bloques de Clase Exactos (TAREA 2)
+    // 4. Columnas de Días con LÍNEAS VERTICALES ENTRE DÍAS (AJUSTE VISUAL 1) y Bloques Exactos
     for (let d = 0; d < numDays; d++) {
       const dayCol = document.createElement('div');
       dayCol.className = 'day-column-body';
