@@ -197,12 +197,6 @@ h1, h2, h3, h4 {
   opacity: 0.9;
 }
 
-.btn-demo {
-  background: rgba(139, 92, 246, 0.15);
-  color: #c084fc;
-  border-color: rgba(139, 92, 246, 0.3);
-}
-
 .btn-icon {
   width: 40px;
   height: 40px;
@@ -222,6 +216,21 @@ h1, h2, h3, h4 {
   background: var(--border-color);
 }
 
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spinner-rotate 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+
 /* Steps Progress Tracker */
 .steps-tracker {
   display: flex;
@@ -238,6 +247,7 @@ h1, h2, h3, h4 {
   color: var(--text-muted);
   opacity: 0.6;
   transition: all var(--transition-fast);
+  cursor: default;
 }
 
 .step-item.active {
@@ -257,18 +267,21 @@ h1, h2, h3, h4 {
   justify-content: center;
   font-size: 0.9rem;
   font-weight: 700;
+  transition: all var(--transition-fast);
 }
 
 .step-item.active .step-number {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-color: transparent;
   color: #ffffff;
+  box-shadow: 0 4px 12px var(--primary-glow);
 }
 
 .step-line {
   height: 2px;
   width: 60px;
   background: var(--border-color);
+  border-radius: 2px;
 }
 
 /* Step Cards */
@@ -306,6 +319,24 @@ h1, h2, h3, h4 {
   font-size: 0.95rem;
 }
 
+.schedule-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.conflict-list {
+  margin-top: 0.75rem;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+.conflict-list li {
+  margin-bottom: 0.3rem;
+}
+
 .card-footer {
   margin-top: 1.5rem;
   padding-top: 1.25rem;
@@ -316,6 +347,54 @@ h1, h2, h3, h4 {
 
 .card-footer.space-between {
   justify-content: space-between;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.step-2-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.toggle-sim-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 0.45rem 0.9rem;
+  border-radius: 20px;
+  user-select: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.toggle-sim-label:hover {
+  background: rgba(245, 158, 11, 0.2);
+}
+
+.toggle-sim-label input[type="checkbox"] {
+  accent-color: #f59e0b;
+  cursor: pointer;
+}
+
+.btn-danger-ghost {
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.btn-danger-ghost:hover {
+  background: var(--danger-bg);
 }
 
 /* Text Input Area */
@@ -360,9 +439,36 @@ h1, h2, h3, h4 {
   color: var(--text-main);
 }
 
+.alert-danger {
+  background: var(--danger-bg);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--text-main);
+}
+
+.alert-danger .alert-icon {
+  color: var(--danger);
+}
+
+.alert-danger h4 {
+  color: var(--danger);
+  font-size: 1.05rem;
+  margin-bottom: 0.25rem;
+}
+
+.alert-danger p {
+  font-size: 0.9rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+.alert-body {
+  flex: 1;
+}
+
 .alert-icon {
   font-size: 1.5rem;
   color: var(--warning);
+  line-height: 1.2;
 }
 
 /* Paso 2 Course Editor Cards */
@@ -387,6 +493,20 @@ h1, h2, h3, h4 {
   margin-bottom: 1.25rem;
   padding-bottom: 0.85rem;
   border-bottom: 1px solid var(--border-color);
+}
+
+.course-card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon-danger {
+  color: var(--danger);
+}
+
+.btn-icon-danger:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 .course-title-input {
@@ -462,9 +582,29 @@ h1, h2, h3, h4 {
   border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
-.badge-closed-text {
-  color: var(--danger);
-  font-weight: 700;
+.badge-lg {
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.badge-inline {
+  display: inline-block;
+  margin-left: 0.1rem;
+}
+
+.liga-badge {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  font-size: 0.75rem;
+  margin-left: 0.3rem;
+  white-space: nowrap;
+}
+
+.section-doc {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 0.3rem;
 }
 
 .slot-list {
@@ -479,6 +619,11 @@ h1, h2, h3, h4 {
   align-items: center;
   gap: 0.4rem;
   margin-bottom: 0.25rem;
+}
+
+.slot-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .sec-toggle-label {
@@ -705,6 +850,124 @@ h1, h2, h3, h4 {
   opacity: 0.9;
 }
 
+/* Credit Limit Bar (Step 2) */
+.credit-limit-bar {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(6, 182, 212, 0.10));
+  border: 1px solid rgba(16, 185, 129, 0.30);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin-top: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.credit-limit-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.credit-limit-info i {
+  color: var(--success);
+  font-size: 1.2rem;
+}
+
+.credit-limit-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.credit-limit-input {
+  width: 90px;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+  transition: border-color var(--transition-fast);
+}
+
+.credit-limit-input:focus {
+  outline: none;
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.credit-limit-input::placeholder {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.credit-limit-unit {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.credit-total-info {
+  width: 100%;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Credit Summary (Step 3) */
+.credit-summary {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.credit-summary-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text-main);
+}
+
+.credit-summary-main i {
+  color: var(--success);
+  font-size: 1.3rem;
+}
+
+.credit-excluded-text {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--warning);
+}
+
+/* Course Title Group (credits badge) */
+.course-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.course-cred-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* Work Optimization Bar */
 .work-optimization-bar {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.12));
@@ -773,6 +1036,13 @@ h1, h2, h3, h4 {
   .card-footer.space-between {
     flex-direction: column;
     gap: 1rem;
+  }
+  .credit-limit-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .credit-total-info {
+    text-align: left;
   }
 }
 

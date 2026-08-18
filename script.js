@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARMADOR DE HORARIOS INTELIGENTE - FILTRADO ESTRICTO DE CERRADOS Y CUADRÍCULA UPAO
+   ARMADOR DE HORARIOS INTELIGENTE
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,8 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let coursesData = [];
   let generatedSolutions = [];
   let activeSolutionIndex = 0;
-  let workOptimizationActive = true; // Activo por defecto para priorizar trabajo
-  let simulateClosedMode = false;     // Modo simulación para incluir secciones cerradas
+  let workOptimizationActive = true;
+  let simulateClosedMode = false;
+  let activeCreditLimit = 0;
+  let activeCreditLimitUsed = 0;
 
   // Mapeo de Días de la Semana
   const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -90,13 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnOptimizeCompact?.addEventListener('click', () => {
     workOptimizationActive = !workOptimizationActive;
-    if (workOptimizationActive) {
-      btnOptimizeCompact.classList.add('active');
-      btnOptimizeCompact.innerHTML = '<i class="ri-check-double-line"></i> ⚡ Optimización Laboral Activa';
-    } else {
-      btnOptimizeCompact.classList.remove('active');
-      btnOptimizeCompact.innerHTML = '<i class="ri-briefcase-4-line"></i> ⚡ Aplicar Optimización Laboral';
-    }
+    syncOptimizeButton();
 
     if (generatedSolutions.length > 0) {
       generatedSolutions.sort(compareSolutions);
@@ -104,6 +100,32 @@ document.addEventListener('DOMContentLoaded', () => {
       renderStep3Results();
     }
   });
+
+  function syncOptimizeButton() {
+    if (!btnOptimizeCompact) return;
+    if (workOptimizationActive) {
+      btnOptimizeCompact.classList.add('active');
+      btnOptimizeCompact.innerHTML = '<i class="ri-check-double-line"></i> Optimización Laboral Activa';
+    } else {
+      btnOptimizeCompact.classList.remove('active');
+      btnOptimizeCompact.innerHTML = '<i class="ri-briefcase-4-line"></i> Aplicar Optimización Laboral';
+    }
+  }
+  syncOptimizeButton();
+
+  const creditLimitInput = document.getElementById('credit-limit-input');
+  const creditTotalInfo = document.getElementById('credit-total-info');
+
+  creditLimitInput?.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value) || 0;
+    activeCreditLimit = Math.max(0, val);
+  });
+
+  function updateCreditTotalInfo() {
+    if (!creditTotalInfo) return;
+    const totalCred = coursesData.reduce((sum, c) => sum + (c.creditosCurso || 0), 0);
+    creditTotalInfo.textContent = `Total disponibles: ${totalCred} créditos en ${coursesData.length} curso${coursesData.length === 1 ? '' : 's'}`;
+  }
 
   function updateCourseCountBadges() {
     const count = coursesData.length;
@@ -115,6 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnViewCoursesList) {
       btnViewCoursesList.style.display = count > 0 ? 'inline-flex' : 'none';
     }
+
+    updateCreditTotalInfo();
   }
 
   function hideApiError() {
@@ -131,11 +155,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goToStep(stepNumber) {
     document.querySelectorAll('.step-card').forEach(card => card.style.display = 'none');
-    document.querySelectorAll('.step-item').forEach(item => item.classList.remove('active'));
+    document.querySelectorAll('.step-item').forEach(item => {
+      item.classList.remove('active');
+      item.removeAttribute('aria-current');
+    });
 
     document.getElementById(`step-${stepNumber}-section`).style.display = 'block';
     document.getElementById(`step-nav-${stepNumber}`).classList.add('active');
-    
+    document.getElementById(`step-nav-${stepNumber}`).setAttribute('aria-current', 'step');
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -206,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let liga = getValueAfter('LIGA:');
         let capaRaw = getValueAfter('CAPA:');
         let regiRaw = getValueAfter('REGI:');
+        let credRaw = getValueAfter('CRED:');
 
         const secHeaderMatch = chunk.match(/Sec\s*([A-Z0-9]+)?\s*\(?\s*NRC:?\s*(\d+)\s*\)?/i);
         if (secHeaderMatch) {
@@ -233,6 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isClosed = /CERRADO|🔴/i.test(chunk);
         const capa = capaRaw ? capaRaw.replace(/\D/g, '') : null;
         const regi = regiRaw ? regiRaw.replace(/CERRADO/i, '').trim().replace(/\D/g, '') : null;
+        const cred = credRaw ? parseInt(credRaw.replace(/\D/g, '')) || 0 : 0;
 
         const slots = [];
         let docente = null, aula = null;
@@ -283,13 +313,15 @@ document.addEventListener('DOMContentLoaded', () => {
           slots: slots,
           capa: capa ? parseInt(capa) : null,
           regi: regi ? parseInt(regi) : null,
+          cred: cred,
           estado: isClosed ? 'CERRADO' : 'ABIERTO',
           incluirEnArmado: !isClosed
         });
       });
 
       if (sections.length > 0) {
-        courses.push({ codigo: courseCode, nombre: courseName, sections });
+        const creditosCurso = Math.max(...sections.map(s => s.cred || 0));
+        courses.push({ codigo: courseCode, nombre: courseName, sections, creditosCurso });
       }
     });
 
@@ -324,10 +356,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const existingIdx = coursesData.findIndex(c => c.codigo.toUpperCase() === newC.codigo.toUpperCase());
       if (existingIdx !== -1) {
         coursesData[existingIdx] = newC;
-        console.log(`🔄 Curso ${newC.codigo} actualizado en la lista global.`);
       } else {
         coursesData.push(newC);
-        console.log(`➕ Curso ${newC.codigo} agregado a la lista global.`);
       }
     });
 
@@ -360,9 +390,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       card.innerHTML = `
         <div class="course-card-header">
-          <input type="text" class="course-title-input" value="${escapeHtml(fullTitle)}" data-cidx="${cIdx}">
-          <div style="display: flex; gap: 0.5rem;">
-            <button class="btn btn-secondary btn-small btn-del-course" data-cidx="${cIdx}" style="color: var(--danger);">
+          <div class="course-title-group">
+            <input type="text" class="course-title-input" value="${escapeHtml(fullTitle)}" data-cidx="${cIdx}">
+            <span class="badge-status badge-lg course-cred-badge">
+              ${course.creditosCurso} ${course.creditosCurso === 1 ? 'crédito' : 'créditos'}
+            </span>
+          </div>
+          <div class="course-card-actions">
+            <button class="btn btn-secondary btn-small btn-danger-ghost btn-del-course" data-cidx="${cIdx}">
               <i class="ri-delete-bin-line"></i> Eliminar Curso
             </button>
           </div>
@@ -374,6 +409,12 @@ document.addEventListener('DOMContentLoaded', () => {
         coursesData.splice(cIdx, 1);
         updateCourseCountBadges();
         renderStep2Editor();
+      });
+
+      card.querySelector('.course-title-input').addEventListener('change', (e) => {
+        const parts = e.target.value.split(' - ');
+        course.codigo = (parts[0] || course.codigo).trim();
+        course.nombre = (parts[1] || course.nombre).trim();
       });
 
       const secGrid = card.querySelector(`#sec-grid-${cIdx}`);
@@ -389,19 +430,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const docLabel = sec.docente ? sec.docente : 'Docente asignado';
         
         const ligaBadge = (sec.idLiga || sec.liga)
-          ? `<span class="badge-status" style="background: rgba(99,102,241,0.15); color: #818cf8; font-size: 0.75rem; margin-left: 0.3rem;"><i class="ri-links-line"></i> Grupo ${escapeHtml(sec.grupoLiga || '1')}: ${escapeHtml(sec.tipoLiga || 'T')} (${escapeHtml(sec.idLiga || 'N/A')})</span>`
+          ? `<span class="badge-status liga-badge"><i class="ri-links-line"></i> Grupo ${escapeHtml(sec.grupoLiga || '1')}: ${escapeHtml(sec.tipoLiga || 'T')} (${escapeHtml(sec.idLiga || 'N/A')})</span>`
           : '';
 
         let badgeClass = 'badge-closed';
-        let badgeText = '🔴 CERRADO';
+        let badgeText = 'CERRADO';
 
         if (isIncluded) {
           if (isOriginallyClosed) {
             badgeClass = 'badge-simulated';
-            badgeText = '🟡 SIMULADO (CERRADO EN PORTAL)';
+            badgeText = 'SIMULADO (CERRADO EN PORTAL)';
           } else {
             badgeClass = 'badge-open';
-            badgeText = '🟢 ABIERTO';
+            badgeText = 'ABIERTO';
           }
         }
 
@@ -425,21 +466,21 @@ document.addEventListener('DOMContentLoaded', () => {
               </span>
               ${ligaBadge}
             </div>
-            <button class="btn-icon btn-small btn-del-sec" data-cidx="${cIdx}" data-sidx="${sIdx}" style="color: var(--danger);"><i class="ri-close-line"></i></button>
+            <button class="btn-icon btn-small btn-icon-danger btn-del-sec" data-cidx="${cIdx}" data-sidx="${sIdx}"><i class="ri-close-line"></i></button>
           </div>
 
-          <p style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.3rem;">
+          <p class="section-doc">
             <i class="ri-user-2-line"></i> ${escapeHtml(docLabel)}
           </p>
 
           <ul class="slot-list">
             ${slotsHtml}
-            <li style="font-size: 0.75rem; color: var(--text-muted);"><i class="ri-group-line"></i> Cupos: ${sec.regi !== null ? sec.regi : 'N/A'} / ${sec.capa !== null ? sec.capa : 'N/A'}</li>
+            <li class="slot-meta"><i class="ri-group-line"></i> Cupos: ${sec.regi !== null ? sec.regi : 'N/A'} / ${sec.capa !== null ? sec.capa : 'N/A'}</li>
           </ul>
 
           <label class="sec-toggle-label">
             <input type="checkbox" class="sec-avail-checkbox" ${isIncluded ? 'checked' : ''} data-cidx="${cIdx}" data-sidx="${sIdx}">
-            <span>${isOriginallyClosed ? '🔓 Activar para simular este horario' : 'Incluir esta sección en el armado'}</span>
+            <span>${isOriginallyClosed ? 'Activar para simular este horario' : 'Incluir esta sección en el armado'}</span>
           </label>
         `;
 
@@ -451,14 +492,14 @@ document.addEventListener('DOMContentLoaded', () => {
           if (sec.incluirEnArmado) {
             if (isOriginallyClosed) {
               statusBadge.className = 'badge-status badge-simulated';
-              statusBadge.textContent = '🟡 SIMULADO (CERRADO EN PORTAL)';
+              statusBadge.textContent = 'SIMULADO (CERRADO EN PORTAL)';
             } else {
               statusBadge.className = 'badge-status badge-open';
-              statusBadge.textContent = '🟢 ABIERTO';
+              statusBadge.textContent = 'ABIERTO';
             }
           } else {
             statusBadge.className = 'badge-status badge-closed';
-            statusBadge.textContent = '🔴 CERRADO';
+            statusBadge.textContent = 'CERRADO';
           }
         });
 
@@ -476,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     5. MOTOR ALGORÍTMICO Y FILTRADO ESTRICTO DE CERRADOS (RECORDATORIO CRÍTICO)
+     5. MOTOR ALGORÍTMICO Y GENERACIÓN DE SOLUCIONES
      -------------------------------------------------------------------------- */
   const btnGenerateSchedule = document.getElementById('btn-generate-schedule');
 
@@ -486,11 +527,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const solutions = solveSchedulesWithLigas(coursesData);
+    const creditLimit = activeCreditLimit > 0 ? activeCreditLimit : 0;
+    const solutions = solveSchedulesWithLigas(coursesData, creditLimit);
 
-    if (solutions.length > 0) {
+    if (solutions && solutions.length > 0) {
       generatedSolutions = solutions;
       activeSolutionIndex = 0;
+      activeCreditLimitUsed = creditLimit;
       document.getElementById('conflict-alert').style.display = 'none';
       renderStep3Results();
       goToStep(3);
@@ -499,12 +542,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  function solveSchedulesWithLigas(courses) {
-    const courseOptionsList = courses.map(course => {
+  function solveSchedulesWithLigas(courses, creditLimit) {
+    const useCreditLimit = creditLimit > 0;
+
+    const courseCreditsList = [];
+    const courseOptionsList = courses.map((course, idx) => {
+      courseCreditsList[idx] = course.creditosCurso || 0;
       const allSections = course.sections;
-      
-      // RECORDATORIO CRÍTICO: FILTRADO ESTRICTO MANDATORIO.
-      // Descartar CUALQUIER sección con estado === 'CERRADO' o incluirEnArmado !== true.
+
+      // Solo se consideran secciones ABIERTAS y marcadas como incluidas.
       const activeSections = allSections.filter(s => {
         if (simulateClosedMode) {
           return s.incluirEnArmado === true;
@@ -534,6 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
           tipoLiga: s.tipoLiga || (s.idLiga ? s.idLiga.charAt(0).toUpperCase() : null),
           grupoLiga: s.grupoLiga || (s.idLiga ? s.idLiga.replace(/\D/g, '') : null),
           isClosedInPortal: s.estado === 'CERRADO',
+          courseCredits: course.creditosCurso || 0,
           slots: slotObjects
         };
       });
@@ -571,7 +618,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const isCompleteGroup = requiredTypes.every(req => availableTypes.includes(req));
         if (!isCompleteGroup) {
-          console.warn(`⚠️ Grupo ${gNum} descartado por faltar componentes abiertos.`);
           return;
         }
 
@@ -599,38 +645,62 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       return validCourseOptions;
-    }).filter(opts => opts.length > 0);
+    });
+
+    if (!useCreditLimit) {
+      const courseWithoutOptions = courseOptionsList.findIndex(opts => opts.length === 0);
+      if (courseWithoutOptions !== -1) {
+        return null;
+      }
+    }
 
     const validSolutions = [];
 
-    function backtrack(courseIndex, currentSelection) {
+    function backtrack(courseIndex, currentSelection, currentCredits, includedIndices) {
       if (courseIndex === courseOptionsList.length) {
+        if (currentSelection.length === 0) return;
+        if (useCreditLimit && currentCredits > creditLimit) return;
+
         const solutionMetrics = calculateSolutionMetrics(currentSelection);
         validSolutions.push({
           selection: [...currentSelection],
           score: solutionMetrics.score,
           totalDeadTimeMin: solutionMetrics.totalDeadTimeMin,
           totalDeadTimeHours: solutionMetrics.totalDeadTimeHours,
-          totalGapHours: solutionMetrics.totalDeadTimeHours,
           totalWeeklyHours: solutionMetrics.totalWeeklyHours,
           activeDaysCount: solutionMetrics.activeDaysCount,
-          saturdayWorkConflict: solutionMetrics.saturdayWorkConflict
+          saturdayWorkConflict: solutionMetrics.saturdayWorkConflict,
+          totalCredits: currentCredits,
+          includedCourseIds: [...includedIndices]
         });
         return;
       }
 
       const optionsForCourse = courseOptionsList[courseIndex];
 
+      // Opción 1: Saltar este curso (solo si hay límite de créditos activo)
+      if (useCreditLimit) {
+        backtrack(courseIndex + 1, currentSelection, currentCredits, includedIndices);
+      }
+
+      // Opción 2: Intentar incluir este curso con cada opción válida
+      if (optionsForCourse.length === 0) return;
+      const courseCreds = courseCreditsList[courseIndex] || 0;
+
       for (let optionGroup of optionsForCourse) {
+        if (useCreditLimit && currentCredits + courseCreds > creditLimit) continue;
         if (!hasOverlapWithSelection(optionGroup, currentSelection)) {
           optionGroup.forEach(sec => currentSelection.push(sec));
-          backtrack(courseIndex + 1, currentSelection);
+          backtrack(courseIndex + 1, currentSelection, currentCredits + courseCreds, [...includedIndices, courseIndex]);
           optionGroup.forEach(() => currentSelection.pop());
         }
       }
     }
 
-    backtrack(0, []);
+    backtrack(0, [], 0, []);
+
+    if (validSolutions.length === 0) return null;
+
     validSolutions.sort(compareSolutions);
     return validSolutions;
   }
@@ -640,6 +710,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (a.saturdayWorkConflict !== b.saturdayWorkConflict) {
         return a.saturdayWorkConflict ? 1 : -1;
       }
+    }
+
+    // Cuando hay límite de créditos activo, priorizar la combinación más cercana al límite
+    if (activeCreditLimitUsed > 0) {
+      const limit = activeCreditLimitUsed;
+      const gapA = limit - (a.totalCredits || 0);
+      const gapB = limit - (b.totalCredits || 0);
+      if (gapA !== gapB) return gapA - gapB;
     }
 
     const diffDeadTime = a.totalDeadTimeMin - b.totalDeadTimeMin;
@@ -740,6 +818,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function diagnoseAndReportConflicts() {
     const conflictAlert = document.getElementById('conflict-alert');
+    const creditSummary = document.getElementById('credit-summary');
+    if (creditSummary) creditSummary.style.display = 'none';
     const conflictList = document.getElementById('conflict-list');
     conflictList.innerHTML = '';
 
@@ -768,7 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* --------------------------------------------------------------------------
-     6. RENDERIZADO CON CUADRÍCULA FIJA UPAO (CENTRADO VERTICAL DE ETIQUETAS Y LÍNEAS VERTICALES)
+     6. RENDERIZADO DE CUADRÍCULA UPAO
      -------------------------------------------------------------------------- */
   const timetableGrid = document.getElementById('timetable-grid');
   const solutionsPills = document.getElementById('solutions-pills');
@@ -786,15 +866,17 @@ document.addEventListener('DOMContentLoaded', () => {
         pill.className = `sol-pill ${idx === activeSolutionIndex ? 'active' : ''}`;
         
         let labelExtra = '';
+        const credLabel = activeCreditLimitUsed > 0 ? ` · ${(sol.totalCredits || 0)}cr` : '';
         if (sol.saturdayWorkConflict) {
-          labelExtra = ' (⚠️ Sábado)';
+          labelExtra = `${credLabel} · Incluye Sábado`;
         } else if (sol.totalDeadTimeMin === 0) {
-          labelExtra = ' (⚡ 0 min muerto)';
+          labelExtra = `${credLabel} · 0h tiempo muerto`;
         } else {
-          labelExtra = ` (${sol.totalDeadTimeHours.toFixed(1)}h tiempo muerto, ${sol.activeDaysCount}d)`;
+          labelExtra = `${credLabel} · ${sol.totalDeadTimeHours.toFixed(1)}h tiempo muerto · ${sol.activeDaysCount}d`;
         }
 
-        pill.innerHTML = `Opción ${idx + 1}${labelExtra}`;
+        const includedCount = (sol.includedCourseIds || []).length;
+        pill.innerHTML = `Opción ${idx + 1} (${includedCount} curso${includedCount === 1 ? '' : 's'})${labelExtra}`;
         pill.addEventListener('click', () => {
           activeSolutionIndex = idx;
           renderStep3Results();
@@ -807,12 +889,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const currentSol = generatedSolutions[activeSolutionIndex];
 
-    document.getElementById('metric-total-courses').textContent = coursesData.length;
+    const totalCursosCargados = coursesData.length;
+    const totalCursosIncluidos = currentSol.selection.length;
+    document.getElementById('metric-total-courses').textContent = `${totalCursosIncluidos}${activeCreditLimitUsed > 0 ? '/' + totalCursosCargados : ''}`;
     document.getElementById('metric-weekly-hours').textContent = `${currentSol.totalWeeklyHours.toFixed(1)}h`;
     document.getElementById('metric-gap-hours').textContent = `${currentSol.totalDeadTimeHours.toFixed(1)}h`;
     
     const efficiencyPct = Math.max(0, Math.min(100, Math.round(100 - (currentSol.totalDeadTimeHours * 5))));
     document.getElementById('metric-efficiency').textContent = `${efficiencyPct}%`;
+
+    // Resumen de créditos
+    const creditSummary = document.getElementById('credit-summary');
+    const creditSummaryText = document.getElementById('credit-summary-text');
+    const creditExcludedText = document.getElementById('credit-excluded-text');
+
+    if (activeCreditLimitUsed > 0 && creditSummary) {
+      creditSummary.style.display = 'block';
+      const usedCredits = currentSol.totalCredits || 0;
+      creditSummaryText.textContent = `Créditos utilizados: ${usedCredits} / ${activeCreditLimitUsed} créditos máximos`;
+
+      const includedIds = new Set(currentSol.includedCourseIds || []);
+      const excludedCourses = coursesData.filter((c, idx) => !includedIds.has(idx));
+      if (excludedCourses.length > 0) {
+        const excludedNames = excludedCourses.map(c => `${c.codigo} (${c.creditosCurso || 0}cr)`).join(', ');
+        creditExcludedText.textContent = `No se pudieron incluir todos los cursos para respetar tu límite de ${activeCreditLimitUsed} créditos. Cursos excluidos: ${excludedNames}`;
+      } else {
+        creditExcludedText.textContent = '';
+      }
+    } else if (creditSummary) {
+      creditSummary.style.display = 'none';
+    }
 
     const courseColorMap = {};
     coursesData.forEach((c, idx) => {
@@ -822,7 +928,7 @@ document.addEventListener('DOMContentLoaded', () => {
     timetableLegend.innerHTML = currentSol.selection.map(item => `
       <div class="legend-item">
         <span class="legend-dot" style="background: ${courseColorMap[item.courseId] ? courseColorMap[item.courseId].bg : '#4f46e5'}"></span>
-        <span><strong>${escapeHtml(item.courseName)}</strong> (${escapeHtml(item.sectionCode)}${item.isClosedInPortal ? ' 🔴' : ''})</span>
+        <span><strong>${escapeHtml(item.courseName)}</strong> (${escapeHtml(item.sectionCode)})${item.isClosedInPortal ? ' <span class="badge-status badge-simulated">SIMULADO</span>' : ''}</span>
       </div>
     `).join('');
 
@@ -924,7 +1030,7 @@ document.addEventListener('DOMContentLoaded', () => {
             eventBlock.style.height = `${Math.max(22, heightPx - 1)}px`;
 
             eventBlock.innerHTML = `
-              <span class="event-title">${escapeHtml(item.courseName)} ${item.isClosedInPortal ? '🔴' : ''}</span>
+              <span class="event-title">${escapeHtml(item.courseName)}</span>
               <span class="event-section">${escapeHtml(item.sectionCode)}</span>
               <span class="event-time">${formatTime(slot.startMin)} - ${formatTime(slot.endMin)}</span>
             `;
@@ -971,7 +1077,6 @@ document.addEventListener('DOMContentLoaded', () => {
       btnExportImage.disabled = false;
       btnExportImage.innerHTML = '<i class="ri-download-2-line"></i> Descargar Horario (PNG)';
     } catch (err) {
-      console.error(err);
       alert('Error al exportar la imagen.');
       btnExportImage.disabled = false;
       btnExportImage.innerHTML = '<i class="ri-download-2-line"></i> Descargar Horario (PNG)';

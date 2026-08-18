@@ -51,7 +51,7 @@
 
     <!-- Step Navigation Bar -->
     <nav class="steps-tracker" aria-label="Pasos de la aplicación">
-      <div class="step-item active" id="step-nav-1">
+      <div class="step-item active" id="step-nav-1" aria-current="step">
         <span class="step-number">1</span>
         <span class="step-label">Pegar Texto de Cursos</span>
       </div>
@@ -78,11 +78,11 @@
       </div>
 
       <!-- Error Alert Container -->
-      <div id="api-error-card" class="alert-card alert-warning mb-3" style="display: none; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.4); color: var(--danger);">
+      <div id="api-error-card" class="alert-card alert-danger" style="display: none;">
         <div class="alert-icon"><i class="ri-error-warning-fill"></i></div>
-        <div style="flex: 1;">
-          <h4 id="api-error-title" style="color: var(--danger); font-size: 1.05rem; margin-bottom: 0.25rem;">Atención</h4>
-          <p id="api-error-desc" style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 0.5rem;">Mensaje de aviso...</p>
+        <div class="alert-body">
+          <h4 id="api-error-title">Atención</h4>
+          <p id="api-error-desc">Mensaje de aviso...</p>
         </div>
       </div>
 
@@ -92,8 +92,8 @@
       </div>
 
       <div class="card-footer space-between">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <span id="course-count-badge-step1" class="badge-status badge-open" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">
+        <div class="footer-left">
+          <span id="course-count-badge-step1" class="badge-status badge-open badge-lg">
             Cursos cargados: 0
           </span>
           <button id="btn-view-courses-list" class="btn btn-secondary" style="display: none;">
@@ -114,17 +114,18 @@
       <div class="card-header flex-header">
         <div>
           <h2><i class="ri-checkbox-multiple-line"></i> Paso 2: Cursos y Secciones Registradas</h2>
-          <p>Confirma los datos de tus cursos. Las secciones con cupos agotados (<span class="badge-status badge-closed-text">🔴 CERRADO</span>) o desmarcadas se omitirán del armado.</p>
+          <p>Confirma los datos de tus cursos. Las secciones con cupos agotados (<span class="badge-status badge-closed badge-inline">CERRADO</span>) o desmarcadas se omitirán del armado.</p>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-          <span id="course-count-badge" class="badge-status badge-open" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">
+        <div class="step-2-toolbar">
+          <span id="course-count-badge" class="badge-status badge-open badge-lg">
             Cursos cargados: 0
           </span>
-          <label class="toggle-closed-sim-label" style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #d97706; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.4rem 0.8rem; border-radius: 20px;">
-            <input type="checkbox" id="toggle-include-closed" style="accent-color: #f59e0b; cursor: pointer;">
-            <span>🔓 Simular (Incluir Secciones CERRADAS)</span>
+          <label class="toggle-sim-label">
+            <input type="checkbox" id="toggle-include-closed">
+            <i class="ri-lock-open-line"></i>
+            <span>Simular (Incluir secciones CERRADAS)</span>
           </label>
-          <button id="btn-clear-all" class="btn btn-secondary" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.4);">
+          <button id="btn-clear-all" class="btn btn-secondary btn-danger-ghost">
             <i class="ri-delete-bin-line"></i> Vaciar Lista
           </button>
           <button id="btn-add-more-courses" class="btn btn-primary">
@@ -135,6 +136,19 @@
 
       <!-- Course List Editable Container -->
       <div id="courses-editor-list" class="courses-editor-list"></div>
+
+      <!-- Credit Limit Bar -->
+      <div class="credit-limit-bar">
+        <div class="credit-limit-info">
+          <i class="ri-wallet-3-line"></i>
+          <span>¿Cuántos créditos quieres llevar este ciclo?</span>
+        </div>
+        <div class="credit-limit-input-group">
+          <input type="number" id="credit-limit-input" class="credit-limit-input" min="0" max="99" step="1" placeholder="Sin límite">
+          <span class="credit-limit-unit">créditos</span>
+        </div>
+        <div class="credit-total-info" id="credit-total-info">Total disponibles: 0 créditos en tus cursos</div>
+      </div>
 
       <div class="card-footer space-between">
         <button id="btn-back-to-step1" class="btn btn-secondary">
@@ -169,11 +183,20 @@
       <!-- Alert for Conflicts -->
       <div id="conflict-alert" class="alert-card alert-warning" style="display: none;">
         <div class="alert-icon"><i class="ri-error-warning-fill"></i></div>
-        <div>
+        <div class="alert-body">
           <h4>Conflicto de Horario Detectado</h4>
           <p id="conflict-alert-desc">No fue posible encontrar una combinación libre de cruces con las secciones seleccionadas.</p>
           <ul id="conflict-list" class="conflict-list"></ul>
         </div>
+      </div>
+
+      <!-- Credit Summary -->
+      <div id="credit-summary" class="credit-summary" style="display: none;">
+        <div class="credit-summary-main">
+          <i class="ri-wallet-3-line"></i>
+          <span id="credit-summary-text">Créditos utilizados: 0 / 0 créditos máximos</span>
+        </div>
+        <p id="credit-excluded-text" class="credit-excluded-text"></p>
       </div>
 
       <!-- Work Optimization Mode Bar -->
@@ -183,7 +206,7 @@
           <p>Agrupa clases consecutivamente (0 huecos) y evita Sábados (07:00 AM - 03:30 PM por trabajo + 1.5h viaje).</p>
         </div>
         <button id="btn-optimize-compact" class="btn btn-accent">
-          <i class="ri-briefcase-4-line"></i> ⚡ Aplicar Optimización Laboral
+          <i class="ri-briefcase-4-line"></i> Aplicar Optimización Laboral
         </button>
       </div>
 
@@ -217,7 +240,7 @@
           </div>
         </div>
         <div class="metric-card">
-          <i class="ri-sparkles-line metric-icon text-accent"></i>
+          <i class="ri-sparkles-line metric-icon"></i>
           <div>
             <strong id="metric-efficiency">100%</strong>
             <span>Índice de Compactación</span>
