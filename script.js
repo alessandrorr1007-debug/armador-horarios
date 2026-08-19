@@ -321,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (sections.length > 0) {
         const creditosCurso = Math.max(...sections.map(s => s.cred || 0));
-        courses.push({ codigo: courseCode, nombre: courseName, sections, creditosCurso });
+        courses.push({ codigo: courseCode, nombre: courseName, sections, creditosCurso, obligatorio: false });
       }
     });
 
@@ -395,6 +395,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="badge-status badge-lg course-cred-badge">
               ${course.creditosCurso} ${course.creditosCurso === 1 ? 'crédito' : 'créditos'}
             </span>
+            <label class="toggle-mandatory-label">
+              <input type="checkbox" class="toggle-mandatory-cb" data-cidx="${cIdx}" ${course.obligatorio ? 'checked' : ''}>
+              <i class="ri-shield-star-line"></i> Obligatorio
+            </label>
           </div>
           <div class="course-card-actions">
             <button class="btn btn-secondary btn-small btn-danger-ghost btn-del-course" data-cidx="${cIdx}">
@@ -415,6 +419,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const parts = e.target.value.split(' - ');
         course.codigo = (parts[0] || course.codigo).trim();
         course.nombre = (parts[1] || course.nombre).trim();
+      });
+
+      card.querySelector('.toggle-mandatory-cb').addEventListener('change', (e) => {
+        course.obligatorio = e.target.checked;
       });
 
       const secGrid = card.querySelector(`#sec-grid-${cIdx}`);
@@ -528,13 +536,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const creditLimit = activeCreditLimit > 0 ? activeCreditLimit : 0;
-    const solutions = solveSchedulesWithLigas(coursesData, creditLimit);
+    const result = solveSchedulesWithLigas(coursesData, creditLimit);
+
+    if (result && result.error) {
+      const errorAlert = document.getElementById('mandatory-error-alert');
+      const errorText = document.getElementById('mandatory-error-text');
+      if (errorAlert && errorText) {
+        if (result.error === 'mandatory_no_sections') {
+          errorText.textContent = `Los cursos obligatorios ${result.courses.join(', ')} no tienen secciones válidas disponibles. Revisa en el Paso 2 que tengan al menos 1 sección marcada como incluida.`;
+        } else if (result.error === 'mandatory_conflict') {
+          errorText.textContent = `Los cursos obligatorios ${result.courses.join(', ')} tienen horarios que se chocan entre sí. No es posible generar un horario con estos cursos obligatorios simultáneamente. Quita la marca de obligatorio de al menos uno o ajusta las secciones.`;
+        }
+        errorAlert.style.display = 'flex';
+        document.getElementById('conflict-alert').style.display = 'none';
+      }
+      return;
+    }
+
+    const solutions = result;
 
     if (solutions && solutions.length > 0) {
       generatedSolutions = solutions;
       activeSolutionIndex = 0;
       activeCreditLimitUsed = creditLimit;
       document.getElementById('conflict-alert').style.display = 'none';
+      const mandatoryError = document.getElementById('mandatory-error-alert');
+      if (mandatoryError) mandatoryError.style.display = 'none';
       renderStep3Results();
       goToStep(3);
     } else {
@@ -654,50 +681,159 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    const hasMandatory = courses.some(c => c.obligatorio);
+
+    if (!hasMandatory) {
+      const validSolutions = [];
+
+      function backtrack(courseIndex, currentSelection, currentCredits, includedIndices) {
+        if (courseIndex === courseOptionsList.length) {
+          if (currentSelection.length === 0) return;
+          if (useCreditLimit && currentCredits > creditLimit) return;
+
+          const solutionMetrics = calculateSolutionMetrics(currentSelection);
+          validSolutions.push({
+            selection: [...currentSelection],
+            score: solutionMetrics.score,
+            totalDeadTimeMin: solutionMetrics.totalDeadTimeMin,
+            totalDeadTimeHours: solutionMetrics.totalDeadTimeHours,
+            totalWeeklyHours: solutionMetrics.totalWeeklyHours,
+            activeDaysCount: solutionMetrics.activeDaysCount,
+            saturdayWorkConflict: solutionMetrics.saturdayWorkConflict,
+            totalCredits: currentCredits,
+            includedCourseIds: [...includedIndices]
+          });
+          return;
+        }
+
+        const optionsForCourse = courseOptionsList[courseIndex];
+
+        if (useCreditLimit) {
+          backtrack(courseIndex + 1, currentSelection, currentCredits, includedIndices);
+        }
+
+        if (optionsForCourse.length === 0) return;
+        const courseCreds = courseCreditsList[courseIndex] || 0;
+
+        for (let optionGroup of optionsForCourse) {
+          if (useCreditLimit && currentCredits + courseCreds > creditLimit) continue;
+          if (!hasOverlapWithSelection(optionGroup, currentSelection)) {
+            optionGroup.forEach(sec => currentSelection.push(sec));
+            backtrack(courseIndex + 1, currentSelection, currentCredits + courseCreds, [...includedIndices, courseIndex]);
+            optionGroup.forEach(() => currentSelection.pop());
+          }
+        }
+      }
+
+      backtrack(0, [], 0, []);
+
+      if (validSolutions.length === 0) return null;
+
+      validSolutions.sort(compareSolutions);
+      return validSolutions;
+    }
+
+    const mandatoryIndices = [];
+    const optionalIndices = [];
+    courses.forEach((c, i) => {
+      if (c.obligatorio) mandatoryIndices.push(i);
+      else optionalIndices.push(i);
+    });
+
+    const mandatoryNoSections = mandatoryIndices.filter(i => courseOptionsList[i].length === 0);
+    if (mandatoryNoSections.length > 0) {
+      return { error: 'mandatory_no_sections', courses: mandatoryNoSections.map(i => courses[i].codigo) };
+    }
+
+    const mandatoryCombos = [];
+
+    function backtrackMandatory(idx, currentSelection, currentCredits, includedIndices) {
+      if (idx === mandatoryIndices.length) {
+        if (currentSelection.length === 0) return;
+        mandatoryCombos.push({
+          selection: [...currentSelection],
+          totalCredits: currentCredits,
+          includedIndices: [...includedIndices]
+        });
+        return;
+      }
+
+      const courseIdx = mandatoryIndices[idx];
+      const optionsForCourse = courseOptionsList[courseIdx];
+      const courseCreds = courseCreditsList[courseIdx] || 0;
+
+      for (let optionGroup of optionsForCourse) {
+        if (!hasOverlapWithSelection(optionGroup, currentSelection)) {
+          optionGroup.forEach(sec => currentSelection.push(sec));
+          backtrackMandatory(idx + 1, currentSelection, currentCredits + courseCreds, [...includedIndices, courseIdx]);
+          optionGroup.forEach(() => currentSelection.pop());
+        }
+      }
+    }
+
+    backtrackMandatory(0, [], 0, []);
+
+    if (mandatoryCombos.length === 0) {
+      return { error: 'mandatory_conflict', courses: mandatoryIndices.map(i => courses[i].codigo) };
+    }
+
+    let bestMandatory = mandatoryCombos[0];
+    let bestMandatoryMetrics = calculateSolutionMetrics(bestMandatory.selection);
+    for (let i = 1; i < mandatoryCombos.length; i++) {
+      const metrics = calculateSolutionMetrics(mandatoryCombos[i].selection);
+      if (metrics.totalDeadTimeMin < bestMandatoryMetrics.totalDeadTimeMin) {
+        bestMandatory = mandatoryCombos[i];
+        bestMandatoryMetrics = metrics;
+      }
+    }
+
+    const mandatoryCredits = bestMandatory.totalCredits;
+    const exceedsWarning = useCreditLimit && mandatoryCredits > creditLimit;
+    const remainingBudget = useCreditLimit ? Math.max(0, creditLimit - mandatoryCredits) : Infinity;
+
     const validSolutions = [];
 
-    function backtrack(courseIndex, currentSelection, currentCredits, includedIndices) {
-      if (courseIndex === courseOptionsList.length) {
-        if (currentSelection.length === 0) return;
-        if (useCreditLimit && currentCredits > creditLimit) return;
+    function backtrackOptional(idx, currentSelection, currentCredits, includedIndices) {
+      if (idx === optionalIndices.length) {
+        const totalCredits = mandatoryCredits + currentCredits;
+        if (useCreditLimit && totalCredits > creditLimit) return;
 
-        const solutionMetrics = calculateSolutionMetrics(currentSelection);
+        const mergedSelection = [...bestMandatory.selection, ...currentSelection];
+        const solutionMetrics = calculateSolutionMetrics(mergedSelection);
         validSolutions.push({
-          selection: [...currentSelection],
+          selection: mergedSelection,
           score: solutionMetrics.score,
           totalDeadTimeMin: solutionMetrics.totalDeadTimeMin,
           totalDeadTimeHours: solutionMetrics.totalDeadTimeHours,
           totalWeeklyHours: solutionMetrics.totalWeeklyHours,
           activeDaysCount: solutionMetrics.activeDaysCount,
           saturdayWorkConflict: solutionMetrics.saturdayWorkConflict,
-          totalCredits: currentCredits,
-          includedCourseIds: [...includedIndices]
+          totalCredits: totalCredits,
+          includedCourseIds: [...bestMandatory.includedIndices, ...includedIndices],
+          exceedsWarning: exceedsWarning
         });
         return;
       }
 
-      const optionsForCourse = courseOptionsList[courseIndex];
+      const courseIdx = optionalIndices[idx];
+      const optionsForCourse = courseOptionsList[courseIdx];
+      const courseCreds = courseCreditsList[courseIdx] || 0;
 
-      // Opción 1: Saltar este curso (solo si hay límite de créditos activo)
-      if (useCreditLimit) {
-        backtrack(courseIndex + 1, currentSelection, currentCredits, includedIndices);
-      }
+      backtrackOptional(idx + 1, currentSelection, currentCredits, includedIndices);
 
-      // Opción 2: Intentar incluir este curso con cada opción válida
       if (optionsForCourse.length === 0) return;
-      const courseCreds = courseCreditsList[courseIndex] || 0;
 
       for (let optionGroup of optionsForCourse) {
-        if (useCreditLimit && currentCredits + courseCreds > creditLimit) continue;
-        if (!hasOverlapWithSelection(optionGroup, currentSelection)) {
+        if (useCreditLimit && currentCredits + courseCreds > remainingBudget) continue;
+        if (!hasOverlapWithSelection(optionGroup, [...bestMandatory.selection, ...currentSelection])) {
           optionGroup.forEach(sec => currentSelection.push(sec));
-          backtrack(courseIndex + 1, currentSelection, currentCredits + courseCreds, [...includedIndices, courseIndex]);
+          backtrackOptional(idx + 1, currentSelection, currentCredits + courseCreds, [...includedIndices, courseIdx]);
           optionGroup.forEach(() => currentSelection.pop());
         }
       }
     }
 
-    backtrack(0, [], 0, []);
+    backtrackOptional(0, [], 0, []);
 
     if (validSolutions.length === 0) return null;
 
@@ -906,15 +1042,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activeCreditLimitUsed > 0 && creditSummary) {
       creditSummary.style.display = 'block';
       const usedCredits = currentSol.totalCredits || 0;
-      creditSummaryText.textContent = `Créditos utilizados: ${usedCredits} / ${activeCreditLimitUsed} créditos máximos`;
+
+      if (currentSol.exceedsWarning) {
+        creditSummaryText.textContent = `⚠ Los cursos obligatorios exceden el límite: ${usedCredits} / ${activeCreditLimitUsed} créditos`;
+      } else {
+        creditSummaryText.textContent = `Créditos utilizados: ${usedCredits} / ${activeCreditLimitUsed} créditos máximos`;
+      }
 
       const includedIds = new Set(currentSol.includedCourseIds || []);
-      const excludedCourses = coursesData.filter((c, idx) => !includedIds.has(idx));
-      if (excludedCourses.length > 0) {
-        const excludedNames = excludedCourses.map(c => `${c.codigo} (${c.creditosCurso || 0}cr)`).join(', ');
-        creditExcludedText.textContent = `No se pudieron incluir todos los cursos para respetar tu límite de ${activeCreditLimitUsed} créditos. Cursos excluidos: ${excludedNames}`;
+      const hasMandatory = coursesData.some(c => c.obligatorio);
+
+      if (hasMandatory) {
+        const mandatoryIncluded = coursesData.filter((c, idx) => c.obligatorio && includedIds.has(idx));
+        const optionalIncluded = coursesData.filter((c, idx) => !c.obligatorio && includedIds.has(idx));
+        const optionalExcluded = coursesData.filter((c, idx) => !c.obligatorio && !includedIds.has(idx));
+
+        let parts = [];
+        if (mandatoryIncluded.length > 0) {
+          parts.push(`Obligatorios (${mandatoryIncluded.length}): ${mandatoryIncluded.map(c => `${c.codigo} (${c.creditosCurso || 0}cr)`).join(', ')}`);
+        }
+        if (optionalIncluded.length > 0) {
+          parts.push(`Opcionales incluidos (${optionalIncluded.length}): ${optionalIncluded.map(c => `${c.codigo} (${c.creditosCurso || 0}cr)`).join(', ')}`);
+        }
+        if (optionalExcluded.length > 0) {
+          parts.push(`Opcionales excluidos (${optionalExcluded.length}): ${optionalExcluded.map(c => `${c.codigo} (${c.creditosCurso || 0}cr)`).join(', ')}`);
+        }
+
+        creditExcludedText.textContent = parts.join(' · ');
       } else {
-        creditExcludedText.textContent = '';
+        const excludedCourses = coursesData.filter((c, idx) => !includedIds.has(idx));
+        if (excludedCourses.length > 0) {
+          const excludedNames = excludedCourses.map(c => `${c.codigo} (${c.creditosCurso || 0}cr)`).join(', ');
+          creditExcludedText.textContent = `No se pudieron incluir todos los cursos para respetar tu límite de ${activeCreditLimitUsed} créditos. Cursos excluidos: ${excludedNames}`;
+        } else {
+          creditExcludedText.textContent = '';
+        }
       }
     } else if (creditSummary) {
       creditSummary.style.display = 'none';

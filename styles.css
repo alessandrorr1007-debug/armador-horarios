@@ -968,6 +968,40 @@ h1, h2, h3, h4 {
   flex-shrink: 0;
 }
 
+.toggle-mandatory-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.toggle-mandatory-label:hover {
+  border-color: rgba(168, 85, 247, 0.4);
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.toggle-mandatory-cb {
+  accent-color: #a855f7;
+  width: 14px;
+  height: 14px;
+}
+
+.toggle-mandatory-label:has(.toggle-mandatory-cb:checked) {
+  background: rgba(168, 85, 247, 0.18);
+  border-color: rgba(168, 85, 247, 0.5);
+  color: #c084fc;
+}
+
 /* Work Optimization Bar */
 .work-optimization-bar {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.12));
