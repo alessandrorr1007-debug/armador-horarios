@@ -363,31 +363,6 @@ h1, h2, h3, h4 {
   flex-wrap: wrap;
 }
 
-.toggle-sim-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #d97706;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  padding: 0.45rem 0.9rem;
-  border-radius: 20px;
-  user-select: none;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
-}
-
-.toggle-sim-label:hover {
-  background: rgba(245, 158, 11, 0.2);
-}
-
-.toggle-sim-label input[type="checkbox"] {
-  accent-color: #f59e0b;
-  cursor: pointer;
-}
-
 .btn-danger-ghost {
   color: var(--danger);
   border-color: rgba(239, 68, 68, 0.4);
@@ -574,12 +549,6 @@ h1, h2, h3, h4 {
 .badge-closed {
   background: var(--danger-bg);
   color: var(--danger);
-}
-
-.badge-simulated {
-  background: rgba(245, 158, 11, 0.15);
-  color: #d97706;
-  border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
 .badge-lg {

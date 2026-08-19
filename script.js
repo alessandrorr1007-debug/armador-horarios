@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let generatedSolutions = [];
   let activeSolutionIndex = 0;
   let workOptimizationActive = true;
-  let simulateClosedMode = false;
   let activeCreditLimit = 0;
   let activeCreditLimitUsed = 0;
 
@@ -53,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAddMoreCourses = document.getElementById('btn-add-more-courses');
   const btnViewCoursesList = document.getElementById('btn-view-courses-list');
   const btnOptimizeCompact = document.getElementById('btn-optimize-compact');
-  const toggleIncludeClosed = document.getElementById('toggle-include-closed');
 
   themeToggle?.addEventListener('click', () => {
     const isDark = !document.documentElement.getAttribute('data-theme');
@@ -77,18 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnAddMoreCourses?.addEventListener('click', () => goToStep(1));
   btnViewCoursesList?.addEventListener('click', () => goToStep(2));
-
-  toggleIncludeClosed?.addEventListener('change', (e) => {
-    simulateClosedMode = e.target.checked;
-    coursesData.forEach(course => {
-      course.sections.forEach(sec => {
-        if (sec.estado === 'CERRADO') {
-          sec.incluirEnArmado = simulateClosedMode;
-        }
-      });
-    });
-    renderStep2Editor();
-  });
 
   btnOptimizeCompact?.addEventListener('click', () => {
     workOptimizationActive = !workOptimizationActive;
@@ -397,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </span>
             <label class="toggle-mandatory-label">
               <input type="checkbox" class="toggle-mandatory-cb" data-cidx="${cIdx}" ${course.obligatorio ? 'checked' : ''}>
-              <i class="ri-shield-star-line"></i> Obligatorio
+              <i class="ri-lock-line"></i> Obligatorio
             </label>
           </div>
           <div class="course-card-actions">
@@ -445,13 +431,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let badgeText = 'CERRADO';
 
         if (isIncluded) {
-          if (isOriginallyClosed) {
-            badgeClass = 'badge-simulated';
-            badgeText = 'SIMULADO (CERRADO EN PORTAL)';
-          } else {
-            badgeClass = 'badge-open';
-            badgeText = 'ABIERTO';
-          }
+          badgeClass = 'badge-open';
+          badgeText = 'ABIERTO';
         }
 
         let slotsHtml = '';
@@ -488,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           <label class="sec-toggle-label">
             <input type="checkbox" class="sec-avail-checkbox" ${isIncluded ? 'checked' : ''} data-cidx="${cIdx}" data-sidx="${sIdx}">
-            <span>${isOriginallyClosed ? 'Activar para simular este horario' : 'Incluir esta sección en el armado'}</span>
+            <span>${isOriginallyClosed ? 'Sección cerrada en portal' : 'Incluir esta sección en el armado'}</span>
           </label>
         `;
 
@@ -498,13 +479,8 @@ document.addEventListener('DOMContentLoaded', () => {
           const statusBadge = chip.querySelector('.badge-status');
 
           if (sec.incluirEnArmado) {
-            if (isOriginallyClosed) {
-              statusBadge.className = 'badge-status badge-simulated';
-              statusBadge.textContent = 'SIMULADO (CERRADO EN PORTAL)';
-            } else {
-              statusBadge.className = 'badge-status badge-open';
-              statusBadge.textContent = 'ABIERTO';
-            }
+            statusBadge.className = 'badge-status badge-open';
+            statusBadge.textContent = 'ABIERTO';
           } else {
             statusBadge.className = 'badge-status badge-closed';
             statusBadge.textContent = 'CERRADO';
@@ -579,9 +555,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Solo se consideran secciones ABIERTAS y marcadas como incluidas.
       const activeSections = allSections.filter(s => {
-        if (simulateClosedMode) {
-          return s.incluirEnArmado === true;
-        }
         return s.estado !== 'CERRADO' && s.incluirEnArmado === true;
       });
       
@@ -606,7 +579,6 @@ document.addEventListener('DOMContentLoaded', () => {
           idLiga: s.idLiga,
           tipoLiga: s.tipoLiga || (s.idLiga ? s.idLiga.charAt(0).toUpperCase() : null),
           grupoLiga: s.grupoLiga || (s.idLiga ? s.idLiga.replace(/\D/g, '') : null),
-          isClosedInPortal: s.estado === 'CERRADO',
           courseCredits: course.creditosCurso || 0,
           slots: slotObjects
         };
@@ -962,7 +934,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const conflictPairs = [];
 
     coursesData.forEach(c => {
-      const openSecs = c.sections.filter(s => s.incluirEnArmado === true && (simulateClosedMode || s.estado !== 'CERRADO'));
+      const openSecs = c.sections.filter(s => s.incluirEnArmado === true && s.estado !== 'CERRADO');
       if (openSecs.length === 0) {
         conflictPairs.push(`El curso "${c.codigo} - ${c.nombre}" no tiene ninguna sección abierta disponible (NRC cerrado o sin vacante).`);
       }
@@ -1090,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', () => {
     timetableLegend.innerHTML = currentSol.selection.map(item => `
       <div class="legend-item">
         <span class="legend-dot" style="background: ${courseColorMap[item.courseId] ? courseColorMap[item.courseId].bg : '#4f46e5'}"></span>
-        <span><strong>${escapeHtml(item.courseName)}</strong> (${escapeHtml(item.sectionCode)})${item.isClosedInPortal ? ' <span class="badge-status badge-simulated">SIMULADO</span>' : ''}</span>
+        <span><strong>${escapeHtml(item.courseName)}</strong> (${escapeHtml(item.sectionCode)})</span>
       </div>
     `).join('');
 
@@ -1185,9 +1157,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const eventBlock = document.createElement('div');
             eventBlock.className = 'event-block';
             eventBlock.style.background = courseColorMap[item.courseId] ? courseColorMap[item.courseId].bg : '#4f46e5';
-            if (item.isClosedInPortal) {
-              eventBlock.style.border = '2px dashed #f59e0b';
-            }
             eventBlock.style.top = `${topPx}px`;
             eventBlock.style.height = `${Math.max(22, heightPx - 1)}px`;
 
