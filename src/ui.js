@@ -3,6 +3,7 @@
  */
 
 import { store } from './store.js';
+import { SAMPLE_UPAO_TEXT } from './config.js';
 import { parseScheduleTextWithDiagnostics } from './parser.js';
 import { solveSchedulesWithLigas } from './solver.js';
 import { renderTimetableGrid, renderAgendaView } from './grid.js';
@@ -145,6 +146,123 @@ export function confirmModal(title, message, onConfirm, options = {}) {
  * Cambia la vista del paso actual y gestiona el foco y accesibilidad.
  * @param {number} stepNumber - Paso al que navegar (1, 2 o 3).
  */
+
+/**
+ * Abre un modal accesible e interactivo con el desglose completo de una clase en el horario.
+ * @param {Object} item - Datos del curso seleccionado.
+ * @param {Object} slot - Franja horaria específica de la clase.
+ * @param {string} [dayName=''] - Nombre del día de la semana.
+ */
+export function showClassDetailModal(item, slot, dayName = '') {
+  const existing = document.getElementById('class-detail-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'class-detail-overlay';
+  overlay.className = 'modal-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'class-detail-title');
+
+  const card = document.createElement('div');
+  card.className = 'modal-card';
+
+  const titleEl = document.createElement('h3');
+  titleEl.id = 'class-detail-title';
+  titleEl.textContent = item.courseName || 'Detalle de la Clase';
+
+  const subDesc = document.createElement('p');
+  subDesc.textContent = `${item.courseCode || ''} · ${item.sectionCode || 'Sección'}`.replace(/^ · /, '');
+
+  const list = document.createElement('div');
+  list.className = 'class-detail-list';
+
+  const formatMin = (m) => {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${String(h12).padStart(2, '0')}:${String(min).padStart(2, '0')} ${ampm}`;
+  };
+
+  const timeStr = (slot.startMin !== undefined && slot.endMin !== undefined)
+    ? `${formatMin(slot.startMin)} - ${formatMin(slot.endMin)}`
+    : 'No definido';
+
+  const details = [
+    { label: 'Día y Horario', icon: 'ri-time-line', val: `${dayName ? dayName + ': ' : ''}${timeStr}` },
+    { label: 'NRC Matrícula', icon: 'ri-barcode-box-line', val: item.sectionId || item.nrc || 'N/A' },
+    { label: 'Docente', icon: 'ri-user-star-line', val: slot.docente || item.professor || 'No especificado' },
+    { label: 'Aula / Salón', icon: 'ri-map-pin-2-line', val: slot.aula || item.room || 'No asignada' },
+    { label: 'Tipo de Sesión', icon: 'ri-booklet-line', val: slot.tipo || (item.idLiga ? `Liga de Grupo ${item.idLiga}` : 'Regular') },
+    { label: 'Créditos', icon: 'ri-wallet-3-line', val: `${item.credits || item.creditos || 0} créditos` }
+  ];
+
+  details.forEach(({ label, icon, val }) => {
+    const row = document.createElement('div');
+    row.className = 'class-detail-row';
+
+    const lblSpan = document.createElement('span');
+    lblSpan.className = 'class-detail-label';
+    lblSpan.innerHTML = `<i class="${icon}" aria-hidden="true"></i> ${label}:`;
+
+    const valSpan = document.createElement('span');
+    valSpan.className = 'class-detail-value';
+    valSpan.textContent = val;
+
+    row.appendChild(lblSpan);
+    row.appendChild(valSpan);
+    list.appendChild(row);
+  });
+
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
+
+  const copyNrcBtn = document.createElement('button');
+  copyNrcBtn.className = 'btn btn-secondary';
+  copyNrcBtn.innerHTML = '<i class="ri-clipboard-line" aria-hidden="true"></i> Copiar NRC';
+  copyNrcBtn.addEventListener('click', async () => {
+    const nrcVal = item.sectionId || item.nrc;
+    if (nrcVal) {
+      await copyToClipboard(nrcVal);
+      showToast(`NRC ${nrcVal} copiado al portapapeles.`, 'success');
+    }
+  });
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn btn-primary';
+  closeBtn.textContent = 'Cerrar';
+
+  const closeModal = () => {
+    overlay.remove();
+    document.removeEventListener('keydown', handleKeyDown);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  };
+
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+  document.addEventListener('keydown', handleKeyDown);
+
+  actions.appendChild(copyNrcBtn);
+  actions.appendChild(closeBtn);
+
+  card.appendChild(titleEl);
+  card.appendChild(subDesc);
+  card.appendChild(list);
+  card.appendChild(actions);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  closeBtn.focus();
+}
+
 export function goToStep(stepNumber) {
   store.setState({ currentStep: stepNumber });
 
@@ -765,6 +883,44 @@ export function initUiEventListeners() {
   applyTheme(store.getState().theme);
 
   // 2. Procesamiento de Texto en Paso 1
+  
+  // Cargar datos de prueba UPAO con 1 clic
+  const btnLoadSample = document.getElementById('btn-load-sample');
+  btnLoadSample?.addEventListener('click', () => {
+    if (textInput) {
+      textInput.value = SAMPLE_UPAO_TEXT;
+      textInput.focus();
+      showToast('Datos de prueba UPAO cargados en el campo de texto.', 'info');
+    }
+  });
+
+  // Filtrado de cursos en tiempo real en Paso 2
+  const courseSearchInput = document.getElementById('course-search-input');
+  courseSearchInput?.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    const courseCards = document.querySelectorAll('.course-edit-card');
+    courseCards.forEach((card) => {
+      const title = card.querySelector('.course-title-input')?.value.toLowerCase() || '';
+      const text = card.textContent.toLowerCase();
+      if (!query || title.includes(query) || text.includes(query)) {
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  });
+
+  // Navegación interactiva por pasos en el tracker superior
+  document.getElementById('step-nav-1')?.addEventListener('click', () => goToStep(1));
+  document.getElementById('step-nav-2')?.addEventListener('click', () => {
+    if (store.getState().coursesData.length > 0) goToStep(2);
+    else showToast('Primero pega tus cursos en el Paso 1.', 'info');
+  });
+  document.getElementById('step-nav-3')?.addEventListener('click', () => {
+    if (store.getState().generatedSolutions.length > 0) goToStep(3);
+    else showToast('Primero genera tu horario en el Paso 2.', 'info');
+  });
+
   const btnProcessInput = document.getElementById('btn-process-input');
   const textInput = document.getElementById('text-input');
   const apiErrorCard = document.getElementById('api-error-card');
@@ -955,6 +1111,16 @@ export function initUiEventListeners() {
 
     const copied = await copyToClipboard(text);
     if (copied) {
+      const btnCopy = document.getElementById('btn-copy-nrcs');
+      if (btnCopy) {
+        const origHtml = btnCopy.innerHTML;
+        btnCopy.innerHTML = '<i class="ri-check-line" aria-hidden="true"></i> ¡NRCs Copiados!';
+        btnCopy.classList.add('btn-success');
+        setTimeout(() => {
+          btnCopy.innerHTML = origHtml;
+          btnCopy.classList.remove('btn-success');
+        }, 2000);
+      }
       showToast(`NRCs copiados al portapapeles: ${text}`, 'success');
     } else {
       showToast('No se pudo copiar automáticamente. NRCs: ' + text, 'info');

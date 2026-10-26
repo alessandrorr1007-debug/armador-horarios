@@ -157,9 +157,14 @@
 
       <!-- Main Text Input Area con label accesible -->
       <div class="form-group">
-        <label for="text-input" class="form-label">
-          Pega aquí el texto copiado de la tabla de tu portal universitario (Ctrl + V):
-        </label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+          <label for="text-input" class="form-label" style="margin-bottom: 0;">
+            Pega aquí el texto copiado de la tabla de tu portal universitario (Ctrl + V):
+          </label>
+          <button type="button" id="btn-load-sample" class="btn btn-secondary btn-small" title="Carga un conjunto de cursos de ejemplo de la UPAO">
+            <i class="ri-sparkles-line" aria-hidden="true"></i> Cargar datos de prueba UPAO
+          </button>
+        </div>
         <textarea id="text-input" class="text-area" rows="12" placeholder="Ejemplo:
 MAT-101 - (CALC1) CALCULO I
 NRC: 1234  SECC: 01  CRED: 4  CAPA: 35  REGI: 20
@@ -205,15 +210,20 @@ LUN 07:00 AM - 08:50 AM Aula A101 Docente: JUAN PEREZ"></textarea>
       </div>
 
       <!-- Barra de Respaldo de Sesión (Importar / Exportar JSON) -->
-      <div class="session-toolbar">
-        <span class="text-muted"><i class="ri-database-2-line" aria-hidden="true"></i> Respaldo de sesión:</span>
-        <button id="btn-export-session" class="btn btn-secondary btn-small">
-          <i class="ri-download-line" aria-hidden="true"></i> Exportar sesión (.json)
-        </button>
-        <button id="btn-import-session" class="btn btn-secondary btn-small">
-          <i class="ri-upload-line" aria-hidden="true"></i> Importar sesión (.json)
-        </button>
-        <input type="file" id="file-import-session" accept=".json,application/json" class="sr-only">
+      <div class="session-toolbar" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+          <span class="text-muted"><i class="ri-database-2-line" aria-hidden="true"></i> Respaldo:</span>
+          <button id="btn-export-session" class="btn btn-secondary btn-small">
+            <i class="ri-download-line" aria-hidden="true"></i> Exportar (.json)
+          </button>
+          <button id="btn-import-session" class="btn btn-secondary btn-small">
+            <i class="ri-upload-line" aria-hidden="true"></i> Importar (.json)
+          </button>
+          <input type="file" id="file-import-session" accept=".json,application/json" class="sr-only">
+        </div>
+        <div style="margin-left: auto; width: 100%; max-width: 300px;">
+          <input type="search" id="course-search-input" class="search-input" placeholder="🔍 Filtrar cursos o NRCs..." aria-label="Filtrar cursos cargados">
+        </div>
       </div>
 
       <!-- Course List Editable Container -->

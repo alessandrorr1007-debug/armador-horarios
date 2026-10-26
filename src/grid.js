@@ -4,6 +4,7 @@
 
 import { DAYS, COURSE_COLORS, GRID_PRESETS } from './config.js';
 import { formatTime } from './utils.js';
+import { showClassDetailModal } from './ui.js';
 
 /**
  * Renderiza la cuadrícula semanal basada en el preset seleccionado.
@@ -26,7 +27,7 @@ export function renderTimetableGrid(gridElement, currentSolution, coursesData, p
   const PX_PER_MIN = preset.pxPerMin;
   const totalHeightPx = TOTAL_MIN * PX_PER_MIN;
 
-  // Mapa de colores por código de curso
+  // Mapa de colores refinados por código de curso
   const courseColorMap = {};
   coursesData.forEach((c, idx) => {
     courseColorMap[c.codigo] = COURSE_COLORS[idx % COURSE_COLORS.length];
@@ -78,7 +79,7 @@ export function renderTimetableGrid(gridElement, currentSolution, coursesData, p
   });
   gridElement.appendChild(timeCol);
 
-  // 4. Columnas de Días y bloques de clase
+  // 4. Columnas de Días y bloques de clase interactivos
   for (let d = 0; d < numDays; d++) {
     const dayCol = document.createElement('div');
     dayCol.className = 'day-column-body';
@@ -109,13 +110,15 @@ export function renderTimetableGrid(gridElement, currentSolution, coursesData, p
           const heightPx = durationMin * PX_PER_MIN;
 
           const colorInfo = courseColorMap[item.courseId] || {
-            bg: '#4f46e5',
-            text: '#ffffff'
+            bg: '#232c45',
+            border: '#42537f',
+            text: '#f1f5f9'
           };
 
           const eventBlock = document.createElement('div');
           eventBlock.className = 'event-block';
-          eventBlock.style.background = colorInfo.bg;
+          eventBlock.style.backgroundColor = colorInfo.bg;
+          eventBlock.style.borderLeftColor = colorInfo.border || colorInfo.bg;
           eventBlock.style.color = colorInfo.text;
           eventBlock.style.top = `${topPx}px`;
           eventBlock.style.height = `${Math.max(24, heightPx - 1)}px`;
@@ -125,8 +128,20 @@ export function renderTimetableGrid(gridElement, currentSolution, coursesData, p
           const aulaText = slot.aula || 'Aula N/A';
           eventBlock.setAttribute(
             'aria-label',
-            `${item.courseName}, ${item.sectionCode}, ${activeDaysList[d]} de ${timeLabel}, ${aulaText}, Docente: ${item.professor}`
+            `${item.courseName}, ${item.sectionCode}, ${activeDaysList[d]} de ${timeLabel}, ${aulaText}, Docente: ${item.professor}. Clic para ver detalles.`
           );
+          eventBlock.title = 'Haz clic para ver todos los detalles de esta clase';
+
+          // Micro-interacción: Clic o Enter abre el modal con detalles de la clase
+          eventBlock.addEventListener('click', () => {
+            showClassDetailModal(item, slot, activeDaysList[d]);
+          });
+          eventBlock.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              showClassDetailModal(item, slot, activeDaysList[d]);
+            }
+          });
 
           // Estructura DOM segura sin innerHTML
           const titleSpan = document.createElement('span');
@@ -181,7 +196,11 @@ export function renderAgendaView(containerElement, currentSolution, coursesData)
       daysEvents[slot.day].push({
         slot,
         course: item,
-        color: courseColorMap[item.courseId] || { bg: '#4f46e5', text: '#ffffff' }
+        color: courseColorMap[item.courseId] || {
+          bg: '#232c45',
+          border: '#42537f',
+          text: '#f1f5f9'
+        }
       });
     });
   });
@@ -217,7 +236,19 @@ export function renderAgendaView(containerElement, currentSolution, coursesData)
     events.forEach(({ slot, course, color }) => {
       const itemEl = document.createElement('div');
       itemEl.className = 'agenda-event-item';
-      itemEl.style.borderLeftColor = color.bg;
+      itemEl.style.borderLeftColor = color.border || color.bg;
+      itemEl.tabIndex = 0;
+      itemEl.title = 'Haz clic para ver detalles de la clase';
+
+      itemEl.addEventListener('click', () => {
+        showClassDetailModal(course, slot, DAYS[dayIdx]);
+      });
+      itemEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          showClassDetailModal(course, slot, DAYS[dayIdx]);
+        }
+      });
 
       const timeCol = document.createElement('div');
       timeCol.className = 'agenda-event-time';

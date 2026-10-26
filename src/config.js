@@ -38,15 +38,16 @@ export const DAY_ALIASES = {
   d: 6
 };
 
+// Paleta sofisticada, madura y armónica (estilo Linear / Notion Calendar / Apple)
 export const COURSE_COLORS = [
-  { bg: '#4f46e5', text: '#ffffff' }, // Indigo
-  { bg: '#059669', text: '#ffffff' }, // Emerald
-  { bg: '#d97706', text: '#ffffff' }, // Amber
-  { bg: '#7c3aed', text: '#ffffff' }, // Purple
-  { bg: '#0891b2', text: '#ffffff' }, // Cyan
-  { bg: '#dc2626', text: '#ffffff' }, // Red
-  { bg: '#ea580c', text: '#ffffff' }, // Orange
-  { bg: '#be185d', text: '#ffffff' } // Pink
+  { bg: '#232c45', border: '#42537f', text: '#f1f5f9' }, // Slate Indigo
+  { bg: '#1c342b', border: '#335e4e', text: '#ecfdf5' }, // Forest Sage
+  { bg: '#362b1b', border: '#665133', text: '#fefce8' }, // Warm Ochre
+  { bg: '#2f213a', border: '#593f6e', text: '#faf5ff' }, // Muted Plum
+  { bg: '#182b3d', border: '#2d4f70', text: '#f0f9ff' }, // Steel Blue
+  { bg: '#382020', border: '#6b3d3d', text: '#fff1f2' }, // Terracotta
+  { bg: '#153234', border: '#265759', text: '#f0fdfa' }, // Deep Teal
+  { bg: '#2b2927', border: '#4f4c47', text: '#fcfcfc' }  // Warm Graphite
 ];
 
 export const GRID_PRESETS = {
@@ -138,3 +139,76 @@ export const APP_CONFIG = {
   SCHEMA_VERSION: 2,
   DEFAULT_SEMESTER_WEEKS: 16
 };
+
+// Datos representativos reales de prueba de la UPAO para demostración en 1 clic
+export const SAMPLE_UPAO_TEXT = `MAT-101 - (CALC1) CALCULO I
+NRC: 1201
+SECC: 01
+CRED: 4
+CAPA: 35
+REGI: 18
+LUN 07:00 AM - 08:50 AM PAB-A 302 10823 PEREZ CHAVEZ JORGE
+MIE 07:00 AM - 08:50 AM PAB-A 302 10823 PEREZ CHAVEZ JORGE
+
+NRC: 1202
+SECC: 02
+CRED: 4
+CAPA: 35
+REGI: 22
+MAR 08:50 AM - 10:40 AM PAB-B 201 10452 RAMOS ZAVALA LUIS
+JUE 08:50 AM - 10:40 AM PAB-B 201 10452 RAMOS ZAVALA LUIS
+
+FIS-201 - (FIS1) FISICA GENERAL
+Sec 01 (NRC: 2301)
+ID LIGA: T1
+LIGA: G1
+Grupo: T1 ➔ G1
+CRED: 4
+CAPA: 30
+REGI: 16
+MAR 10:40 AM - 12:25 PM PAB-C 105 20194 MENDOZA RUIZ CARLOS
+
+Sec 02 (NRC: 2302)
+ID LIGA: P1
+LIGA: G1
+Grupo: P1 ➔ G1
+CRED: 4
+CAPA: 15
+REGI: 10
+JUE 10:40 AM - 12:25 PM Lab-Fis 101 20194 MENDOZA RUIZ CARLOS
+
+Sec 03 (NRC: 2303)
+ID LIGA: T2
+LIGA: G2
+Grupo: T2 ➔ G2
+CRED: 4
+CAPA: 30
+REGI: 20
+LUN 02:20 PM - 04:10 PM PAB-C 105 18451 ALVAREZ RIOS HUGO
+
+Sec 04 (NRC: 2304)
+ID LIGA: P2
+LIGA: G2
+Grupo: P2 ➔ G2
+CRED: 4
+CAPA: 15
+REGI: 12
+VIE 02:20 PM - 04:10 PM Lab-Fis 102 18451 ALVAREZ RIOS HUGO
+
+SIS-301 - (ALGO1) ALGORITMOS Y ESTRUCTURAS DE DATOS
+NRC: 3401
+SECC: 01
+CRED: 4
+CAPA: 32
+REGI: 15
+MIE 10:40 AM - 12:25 PM Lab-Comp 204 15201 VIZCARRA VEGA ROSA
+VIE 10:40 AM - 12:25 PM Lab-Comp 204 15201 VIZCARRA VEGA ROSA
+
+NRC: 3402
+SECC: 02
+CRED: 4
+CAPA: 30
+REGI: 30 CERRADO
+🔴 CERRADO
+MAR 02:20 PM - 04:10 PM Lab-Comp 201 15201 VIZCARRA VEGA ROSA
+`;
