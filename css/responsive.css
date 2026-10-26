@@ -1,0 +1,166 @@
+/* ==========================================================================
+   RESPONSIVIDAD MÓVIL Y ESTILOS DE IMPRESIÓN (@media print)
+   ========================================================================== */
+
+/* Work Optimization Bar */
+.work-optimization-bar {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15));
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.work-opt-info h4 {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+
+.work-opt-info p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+
+.btn-accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.45);
+}
+
+.btn-accent.active {
+  background: linear-gradient(135deg, #059669, #10b981);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+/* Responsividad para móviles y tablets */
+@media (max-width: 768px) {
+  .work-optimization-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-container {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .card-header.flex-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .steps-tracker {
+    gap: 0.3rem;
+  }
+
+  .step-label {
+    display: none;
+  }
+
+  .card-footer.space-between {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .credit-limit-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .credit-total-info {
+    text-align: left;
+  }
+
+  .agenda-event-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .restore-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .course-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Estilos de Impresión / PDF Limpios */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt;
+  }
+
+  .app-header,
+  .steps-tracker,
+  .schedule-actions,
+  .timetable-controls-bar,
+  .work-optimization-bar,
+  .solutions-bar,
+  .metrics-grid,
+  .skip-link,
+  .toast-container,
+  .card-footer,
+  .btn,
+  #theme-toggle {
+    display: none !important;
+  }
+
+  .step-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  .timetable-wrapper {
+    border: 1px solid #000000 !important;
+    padding: 0.5cm !important;
+    background: #ffffff !important;
+  }
+
+  .timetable-grid {
+    border: 1px solid #333333 !important;
+    min-width: 100% !important;
+  }
+
+  .time-fixed-row,
+  .day-header-cell,
+  .time-header-cell {
+    background: #f0f0f0 !important;
+    color: #000000 !important;
+  }
+
+  .event-block {
+    box-shadow: none !important;
+    border: 1px solid rgba(0, 0, 0, 0.4) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page {
+    size: landscape;
+    margin: 1cm;
+  }
+}

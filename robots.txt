@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://alessandrorr1007-debug.github.io/armador-horarios/sitemap.xml

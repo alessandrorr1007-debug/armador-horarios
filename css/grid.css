@@ -1,0 +1,221 @@
+/* ==========================================================================
+   CUADRÍCULA VISUAL SEMANAL Y VISTA DE AGENDA MÓVIL
+   ========================================================================== */
+
+.timetable-wrapper {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+}
+
+.timetable-header-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.timetable-controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.timetable-legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.timetable-scroll-container {
+  overflow-x: auto;
+}
+
+.timetable-grid {
+  display: grid;
+  grid-template-columns: 85px repeat(7, minmax(130px, 1fr));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  min-width: 900px;
+}
+
+.day-header-cell {
+  background: var(--bg-input);
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-color);
+}
+
+.time-header-cell {
+  background: var(--bg-input);
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.time-labels-column {
+  background: var(--bg-input);
+  border-right: 1px solid var(--border-color);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.time-fixed-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary);
+  border-top: 1px solid var(--border-color);
+  box-sizing: border-box;
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.time-slot-line {
+  border-bottom: 1px solid var(--border-color);
+  box-sizing: border-box;
+}
+
+.day-column-body {
+  border-left: 1px solid var(--border-color);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.event-block {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  color: #ffffff;
+  font-size: 0.78rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.event-block:hover, .event-block:focus {
+  z-index: 10;
+  transform: scale(1.02);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+.event-title {
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-section, .event-time {
+  font-size: 0.72rem;
+  opacity: 0.95;
+}
+
+/* Agenda View (Lista Diaria Móvil) */
+.agenda-view-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.agenda-day-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+}
+
+.agenda-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.agenda-day-header h3 {
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+.agenda-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.agenda-event-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-left: 5px solid var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.agenda-event-time {
+  font-size: 0.85rem;
+  font-weight: 700;
+  min-width: 105px;
+  color: var(--text-main);
+}
+
+.agenda-event-body {
+  flex: 1;
+}
+
+.agenda-event-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.agenda-event-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

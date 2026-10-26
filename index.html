@@ -3,43 +3,96 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Armador de Horarios Inteligente | Generador Profesional de Horarios</title>
-  <meta name="description" content="Plataforma profesional para generar la mejor combinación de horarios universitarios sin cruces de clases.">
+  <title>Armador de Horarios Inteligente | Generador Profesional de Horarios UPAO</title>
+  <meta name="description" content="Plataforma profesional para generar la mejor combinación de horarios universitarios sin cruces de clases, con soporte para ligas de teoría y práctica.">
+  <meta name="referrer" content="no-referrer">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
+  <!-- Content Security Policy Restrictiva -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self';">
 
-  <!-- Fonts -->
+  <!-- Colores de tema para navegador móvil -->
+  <meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b0f19" media="(prefers-color-scheme: dark)">
+
+  <!-- URL Canónica -->
+  <link rel="canonical" href="https://alessandrorr1007-debug.github.io/armador-horarios/">
+
+  <!-- Open Graph / Facebook / WhatsApp / Telegram -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_PE">
+  <meta property="og:url" content="https://alessandrorr1007-debug.github.io/armador-horarios/">
+  <meta property="og:title" content="Armador de Horarios Inteligente | Generador de Horarios UPAO">
+  <meta property="og:description" content="Genera tu horario universitario perfecto sin cruces de clases, optimizado para evitar huecos y respetando ligas de teoría y práctica.">
+  <meta property="og:image" content="assets/social-banner.svg">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Armador de Horarios Inteligente | UPAO">
+  <meta name="twitter:description" content="Genera tu horario universitario sin cruces de clase y optimizado para el trabajo.">
+  <meta name="twitter:image" content="assets/social-banner.svg">
+
+  <!-- PWA & Favicon Completo -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
+  <link rel="alternate icon" type="image/png" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+
+  <!-- Google Fonts Preconnect con font-display: swap -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Remix Icon -->
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet"/>
+  <!-- Remix Icon (Local Vendor con fallback CDN y SRI) -->
+  <link rel="stylesheet" href="vendor/remixicon/remixicon.css">
 
-  <!-- External Library (PNG Export) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-
-  <!-- Stylesheet -->
+  <!-- Stylesheet Modular Principal -->
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Datos Estructurados JSON-LD (schema.org/WebApplication) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Armador de Horarios Inteligente",
+    "url": "https://alessandrorr1007-debug.github.io/armador-horarios/",
+    "description": "Generador y optimizador profesional de horarios universitarios sin cruces de clases.",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "All",
+    "browserRequirements": "Requires JavaScript. Requires HTML5.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <!--
+    [OPCIONAL] Plantilla de analítica respetuosa con la privacidad (Plausible Analytics).
+    Desactivada por defecto. Para activarla, descomenta y coloca tu dominio:
+    <script defer data-domain="tudominio.com" src="https://plausible.io/js/script.js"></script>
+  -->
 </head>
 <body>
+
+  <!-- Enlace accesible de salto al contenido -->
+  <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
   <!-- App Header -->
   <header class="app-header">
     <div class="container header-container">
       <div class="brand">
-        <div class="brand-icon">
+        <div class="brand-icon" aria-hidden="true">
           <i class="ri-calendar-schedule-line"></i>
         </div>
         <div>
           <h1 class="brand-title">Armador de Horarios <span class="gradient-text">Inteligente</span></h1>
-          <p class="brand-subtitle">Optimizador Profesional de Horarios Universitarios</p>
+          <p class="brand-subtitle">Optimizador Profesional de Horarios Universitarios · UPAO</p>
         </div>
       </div>
 
       <div class="header-actions">
-        <button id="theme-toggle" class="btn-icon" aria-label="Cambiar tema">
+        <button id="theme-toggle" class="btn-icon" aria-label="Cambiar entre tema oscuro y claro">
           <i class="ri-moon-line" id="theme-icon"></i>
         </button>
       </div>
@@ -47,38 +100,54 @@
   </header>
 
   <!-- Main Application Container -->
-  <main class="container main-content">
+  <main class="container main-content" id="main-content">
 
     <!-- Step Navigation Bar -->
     <nav class="steps-tracker" aria-label="Pasos de la aplicación">
       <div class="step-item active" id="step-nav-1" aria-current="step">
         <span class="step-number">1</span>
-        <span class="step-label">Pegar Texto de Cursos</span>
+        <span class="step-label">Pegar Cursos</span>
       </div>
-      <div class="step-line"></div>
+      <div class="step-line" aria-hidden="true"></div>
       <div class="step-item" id="step-nav-2">
         <span class="step-number">2</span>
-        <span class="step-label">Verificar Cursos & Cupos</span>
+        <span class="step-label">Verificar Cupos & Límite</span>
       </div>
-      <div class="step-line"></div>
+      <div class="step-line" aria-hidden="true"></div>
       <div class="step-item" id="step-nav-3">
         <span class="step-number">3</span>
         <span class="step-label">Horario Optimizado</span>
       </div>
     </nav>
 
+    <!-- Banner de Restauración de Sesión Previa -->
+    <section id="restore-session-banner" class="restore-banner" style="display: none;" aria-label="Aviso de sesión guardada">
+      <div>
+        <strong><i class="ri-history-line"></i> Sesión previa encontrada</strong>
+        <p>Tienes <span id="restore-course-count">0 cursos</span> guardados de tu última sesión en este navegador.</p>
+      </div>
+      <div class="restore-banner-actions">
+        <button id="btn-restore-session" class="btn btn-primary btn-small">
+          <i class="ri-restart-line"></i> Restaurar sesión anterior
+        </button>
+        <button id="btn-discard-session" class="btn btn-secondary btn-small">
+          <i class="ri-delete-bin-line"></i> Empezar de cero
+        </button>
+      </div>
+    </section>
+
 
     <!-- ==========================================================================
        PASO 1: PEGAR TEXTO DE CURSOS DEL PORTAL
        ========================================================================== -->
-    <section class="step-card" id="step-1-section">
+    <section class="step-card" id="step-1-section" aria-labelledby="step-1-title">
       <div class="card-header">
-        <h2><i class="ri-file-text-line"></i> Paso 1: Cargar Horarios de tu Portal Académico</h2>
-        <p>Copia y pega el texto con la información de tus cursos directamente desde tu portal académico. Puedes agregar los cursos de uno en uno para acumularlos en tu lista.</p>
+        <h2 id="step-1-title"><i class="ri-file-text-line" aria-hidden="true"></i> Paso 1: Cargar Horarios de tu Portal Académico</h2>
+        <p>Copia y pega la tabla de tus cursos directamente desde tu portal académico de la UPAO. Puedes agregar varios cursos en un solo bloque o agregarlos uno a uno para acumularlos en tu lista.</p>
       </div>
 
       <!-- Error Alert Container -->
-      <div id="api-error-card" class="alert-card alert-danger" style="display: none;">
+      <div id="api-error-card" class="alert-card alert-danger" style="display: none;" role="alert" aria-live="polite">
         <div class="alert-icon"><i class="ri-error-warning-fill"></i></div>
         <div class="alert-body">
           <h4 id="api-error-title">Atención</h4>
@@ -86,9 +155,15 @@
         </div>
       </div>
 
-      <!-- Main Text Input Area -->
+      <!-- Main Text Input Area con label accesible -->
       <div class="form-group">
-        <textarea id="text-input" class="text-area" rows="14" placeholder="Pega aquí el texto copiado de tu portal universitario..."></textarea>
+        <label for="text-input" class="form-label">
+          Pega aquí el texto copiado de la tabla de tu portal universitario (Ctrl + V):
+        </label>
+        <textarea id="text-input" class="text-area" rows="12" placeholder="Ejemplo:
+MAT-101 - (CALC1) CALCULO I
+NRC: 1234  SECC: 01  CRED: 4  CAPA: 35  REGI: 20
+LUN 07:00 AM - 08:50 AM Aula A101 Docente: JUAN PEREZ"></textarea>
       </div>
 
       <div class="card-footer space-between">
@@ -97,11 +172,11 @@
             Cursos cargados: 0
           </span>
           <button id="btn-view-courses-list" class="btn btn-secondary" style="display: none;">
-            <i class="ri-eye-line"></i> Ver Cursos Cargados
+            <i class="ri-eye-line" aria-hidden="true"></i> Ver Cursos Cargados
           </button>
         </div>
         <button id="btn-process-input" class="btn btn-primary btn-large">
-          <i class="ri-add-circle-line"></i> Procesar y Agregar Curso
+          <i class="ri-add-circle-line" aria-hidden="true"></i> Procesar y Agregar Curso
         </button>
       </div>
     </section>
@@ -110,23 +185,35 @@
     <!-- ==========================================================================
        PASO 2: VERIFICACIÓN Y ESTADO DE SECCIONES (ABIERTO / CERRADO)
        ========================================================================== -->
-    <section class="step-card" id="step-2-section" style="display: none;">
+    <section class="step-card" id="step-2-section" style="display: none;" aria-labelledby="step-2-title">
       <div class="card-header flex-header">
         <div>
-          <h2><i class="ri-checkbox-multiple-line"></i> Paso 2: Cursos y Secciones Registradas</h2>
-          <p>Confirma los datos de tus cursos. Las secciones con cupos agotados (<span class="badge-status badge-closed badge-inline">CERRADO</span>) o desmarcadas se omitirán del armado.</p>
+          <h2 id="step-2-title"><i class="ri-checkbox-multiple-line" aria-hidden="true"></i> Paso 2: Cursos y Secciones Registradas</h2>
+          <p>Confirma los datos de tus cursos. Las secciones con cupos agotados (<span class="badge-status badge-closed badge-sm">CERRADO</span>) o desmarcadas se omitirán del armado.</p>
         </div>
         <div class="step-2-toolbar">
           <span id="course-count-badge" class="badge-status badge-open badge-lg">
             Cursos cargados: 0
           </span>
           <button id="btn-clear-all" class="btn btn-secondary btn-danger-ghost">
-            <i class="ri-delete-bin-line"></i> Vaciar Lista
+            <i class="ri-delete-bin-line" aria-hidden="true"></i> Vaciar Lista
           </button>
           <button id="btn-add-more-courses" class="btn btn-primary">
-            <i class="ri-add-line"></i> Agregar Otro Curso
+            <i class="ri-add-line" aria-hidden="true"></i> Agregar Otro Curso
           </button>
         </div>
+      </div>
+
+      <!-- Barra de Respaldo de Sesión (Importar / Exportar JSON) -->
+      <div class="session-toolbar">
+        <span class="text-muted"><i class="ri-database-2-line" aria-hidden="true"></i> Respaldo de sesión:</span>
+        <button id="btn-export-session" class="btn btn-secondary btn-small">
+          <i class="ri-download-line" aria-hidden="true"></i> Exportar sesión (.json)
+        </button>
+        <button id="btn-import-session" class="btn btn-secondary btn-small">
+          <i class="ri-upload-line" aria-hidden="true"></i> Importar sesión (.json)
+        </button>
+        <input type="file" id="file-import-session" accept=".json,application/json" class="sr-only">
       </div>
 
       <!-- Course List Editable Container -->
@@ -135,8 +222,8 @@
       <!-- Credit Limit Bar -->
       <div class="credit-limit-bar">
         <div class="credit-limit-info">
-          <i class="ri-wallet-3-line"></i>
-          <span>¿Cuántos créditos quieres llevar este ciclo?</span>
+          <i class="ri-wallet-3-line" aria-hidden="true"></i>
+          <label for="credit-limit-input">¿Cuántos créditos máximos quieres llevar este ciclo?</label>
         </div>
         <div class="credit-limit-input-group">
           <input type="number" id="credit-limit-input" class="credit-limit-input" min="0" max="99" step="1" placeholder="Sin límite">
@@ -147,10 +234,10 @@
 
       <div class="card-footer space-between">
         <button id="btn-back-to-step1" class="btn btn-secondary">
-          <i class="ri-arrow-left-line"></i> Volver al Paso 1
+          <i class="ri-arrow-left-line" aria-hidden="true"></i> Volver al Paso 1
         </button>
         <button id="btn-generate-schedule" class="btn btn-success btn-large">
-          <i class="ri-calendar-check-line"></i> Generar Horario Optimizado
+          <i class="ri-calendar-check-line" aria-hidden="true"></i> Generar Horario Optimizado
         </button>
       </div>
     </section>
@@ -159,25 +246,34 @@
     <!-- ==========================================================================
        PASO 3: HORARIO OPTIMIZADO & CALENDARIO VISUAL
        ========================================================================== -->
-    <section class="step-card" id="step-3-section" style="display: none;">
+    <section class="step-card" id="step-3-section" style="display: none;" aria-labelledby="step-3-title">
       <div class="card-header flex-header">
         <div>
-          <h2><i class="ri-calendar-check-line"></i> Paso 3: Horario Optimizado Generado</h2>
+          <h2 id="step-3-title"><i class="ri-calendar-check-line" aria-hidden="true"></i> Paso 3: Horario Optimizado Generado</h2>
           <p id="schedule-summary-text">Se han evaluado todas las combinaciones posibles respetando amarrados de ligas y sin colisiones de horario.</p>
         </div>
         <div class="schedule-actions">
+          <button id="btn-copy-nrcs" class="btn btn-secondary" title="Copia los NRCs de la opción activa para pegarlos en el portal de matrícula">
+            <i class="ri-clipboard-line" aria-hidden="true"></i> Copiar lista de NRCs
+          </button>
           <button id="btn-export-image" class="btn btn-primary">
-            <i class="ri-download-2-line"></i> Descargar Horario (PNG)
+            <i class="ri-download-2-line" aria-hidden="true"></i> Descargar PNG
+          </button>
+          <button id="btn-export-ics" class="btn btn-secondary" title="Exporta las clases a tu calendario móvil">
+            <i class="ri-calendar-event-line" aria-hidden="true"></i> Exportar a Calendario (.ics)
+          </button>
+          <button id="btn-print-schedule" class="btn btn-secondary" title="Imprimir o guardar como PDF">
+            <i class="ri-printer-line" aria-hidden="true"></i> Imprimir / PDF
           </button>
           <button id="btn-edit-courses-again" class="btn btn-secondary">
-            <i class="ri-edit-line"></i> Ajustar Cursos
+            <i class="ri-edit-line" aria-hidden="true"></i> Ajustar Cursos
           </button>
         </div>
       </div>
 
       <!-- Alert for Conflicts -->
-      <div id="conflict-alert" class="alert-card alert-warning" style="display: none;">
-        <div class="alert-icon"><i class="ri-error-warning-fill"></i></div>
+      <div id="conflict-alert" class="alert-card alert-warning" style="display: none;" role="alert" aria-live="polite">
+        <div class="alert-icon"><i class="ri-error-warning-fill" aria-hidden="true"></i></div>
         <div class="alert-body">
           <h4>Conflicto de Horario Detectado</h4>
           <p id="conflict-alert-desc">No fue posible encontrar una combinación libre de cruces con las secciones seleccionadas.</p>
@@ -186,8 +282,8 @@
       </div>
 
       <!-- Alert for Mandatory Course Errors -->
-      <div id="mandatory-error-alert" class="alert-card alert-danger" style="display: none;">
-        <div class="alert-icon"><i class="ri-error-warning-fill"></i></div>
+      <div id="mandatory-error-alert" class="alert-card alert-danger" style="display: none;" role="alert" aria-live="polite">
+        <div class="alert-icon"><i class="ri-error-warning-fill" aria-hidden="true"></i></div>
         <div class="alert-body">
           <h4>Error en Cursos Obligatorios</h4>
           <p id="mandatory-error-text"></p>
@@ -197,7 +293,7 @@
       <!-- Credit Summary -->
       <div id="credit-summary" class="credit-summary" style="display: none;">
         <div class="credit-summary-main">
-          <i class="ri-wallet-3-line"></i>
+          <i class="ri-wallet-3-line" aria-hidden="true"></i>
           <span id="credit-summary-text">Créditos utilizados: 0 / 0 créditos máximos</span>
         </div>
         <p id="credit-excluded-text" class="credit-excluded-text"></p>
@@ -206,45 +302,55 @@
       <!-- Work Optimization Mode Bar -->
       <div class="work-optimization-bar" id="work-optimization-bar">
         <div class="work-opt-info">
-          <h4><i class="ri-sparkles-line gradient-text"></i> Modo Optimización para Trabajo</h4>
-          <p>Agrupa clases consecutivamente (0 huecos) y evita Sábados (07:00 AM - 03:30 PM por trabajo + 1.5h viaje).</p>
+          <h4><i class="ri-sparkles-line gradient-text" aria-hidden="true"></i> Restricción Laboral y Horarios de Trabajo</h4>
+          <p>Agrupa clases consecutivamente (0 huecos) y penaliza clases que choquen con tus turnos de trabajo (sábados de 07:00 AM a 03:30 PM).</p>
         </div>
-        <button id="btn-optimize-compact" class="btn btn-accent">
-          <i class="ri-briefcase-4-line"></i> Aplicar Optimización Laboral
+        <button id="btn-optimize-compact" class="btn btn-accent" aria-pressed="true">
+          <i class="ri-check-double-line" aria-hidden="true"></i> Restricción Laboral Activa
         </button>
       </div>
 
       <!-- Solutions Selector Bar -->
       <div id="solutions-selector-bar" class="solutions-bar" style="display: none;">
-        <span><i class="ri-stack-line"></i> Opciones de Horario Disponibles:</span>
+        <span><i class="ri-stack-line" aria-hidden="true"></i> Opciones de Horario:</span>
         <div id="solutions-pills" class="solutions-pills"></div>
+
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem;">
+          <label for="sort-by-select" class="sr-only">Ordenar opciones por:</label>
+          <select id="sort-by-select" class="select-input" aria-label="Ordenar opciones por">
+            <option value="deadTime">Ordenar por: Menos huecos</option>
+            <option value="days">Ordenar por: Menos días</option>
+            <option value="efficiency">Ordenar por: Mayor eficiencia</option>
+            <option value="credits">Ordenar por: Más créditos</option>
+          </select>
+        </div>
       </div>
 
       <!-- Metrics Badges -->
       <div class="metrics-grid">
         <div class="metric-card">
-          <i class="ri-book-open-line metric-icon"></i>
+          <i class="ri-book-open-line metric-icon" aria-hidden="true"></i>
           <div>
             <strong id="metric-total-courses">0</strong>
             <span>Cursos Inscritos</span>
           </div>
         </div>
         <div class="metric-card">
-          <i class="ri-time-line metric-icon"></i>
+          <i class="ri-time-line metric-icon" aria-hidden="true"></i>
           <div>
             <strong id="metric-weekly-hours">0h</strong>
             <span>Horas Lectivas / Semanal</span>
           </div>
         </div>
         <div class="metric-card">
-          <i class="ri-rest-time-line metric-icon"></i>
+          <i class="ri-rest-time-line metric-icon" aria-hidden="true"></i>
           <div>
             <strong id="metric-gap-hours">0h</strong>
             <span>Huecos Libres entre Clases</span>
           </div>
         </div>
         <div class="metric-card">
-          <i class="ri-sparkles-line metric-icon"></i>
+          <i class="ri-sparkles-line metric-icon" aria-hidden="true"></i>
           <div>
             <strong id="metric-efficiency">100%</strong>
             <span>Índice de Compactación</span>
@@ -257,21 +363,39 @@
         <div class="timetable-header-banner">
           <div>
             <h3 id="print-timetable-title">Horario de Clases Optimizado</h3>
-            <p id="print-timetable-subtitle">Generado con Armador de Horarios Inteligente</p>
+            <p id="print-timetable-subtitle">Generado con Armador de Horarios Inteligente · UPAO</p>
           </div>
           <div class="timetable-legend" id="timetable-legend"></div>
+        </div>
+
+        <!-- Barra de Controles de la Grilla (Preset y Vista Móvil) -->
+        <div class="timetable-controls-bar">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label for="grid-preset-select" style="font-size: 0.85rem; font-weight: 600;">Cuadrícula:</label>
+            <select id="grid-preset-select" class="select-input" style="min-height: 38px; font-size: 0.85rem;">
+              <option value="upao">Bloques Oficiales UPAO (110m / 105m)</option>
+              <option value="hourly">Bloques de 1 Hora (Estándar)</option>
+            </select>
+          </div>
+
+          <button id="btn-toggle-view-mode" class="btn btn-secondary btn-small" style="margin-left: auto;">
+            <i class="ri-list-check-2" aria-hidden="true"></i> Ver Agenda Diaria
+          </button>
         </div>
 
         <div class="timetable-scroll-container">
           <div id="timetable-grid" class="timetable-grid"></div>
         </div>
+
+        <!-- Contenedor para vista de lista / agenda móvil -->
+        <div id="timetable-agenda" style="display: none;"></div>
       </div>
 
     </section>
 
   </main>
 
-  <!-- Script -->
-  <script src="script.js"></script>
+  <!-- Script Modular (Punto de Entrada ES Module) -->
+  <script type="module" src="src/main.js"></script>
 </body>
 </html>

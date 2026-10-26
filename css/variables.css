@@ -1,0 +1,57 @@
+/* ==========================================================================
+   VARIABLES, TOKENS DE DISEÑO Y PALETAS (DARK / LIGHT) - WCAG 2.1 AA
+   ========================================================================== */
+
+:root {
+  --font-primary: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
+
+  /* Color Palette (Dark Theme Default - Contrast Enhanced) */
+  --bg-main: #0b0f19;
+  --bg-card: #131b2e;
+  --bg-input: #1d283d;
+  --border-color: rgba(255, 255, 255, 0.15);
+
+  --text-main: #f9fafb;
+  --text-muted: #cbd5e1; /* Contraste mejorado >= 4.5:1 contra #131b2e */
+  --text-inverse: #111827;
+
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-glow: rgba(99, 102, 241, 0.25);
+
+  --accent: #8b5cf6;
+  --success: #10b981;
+  --success-bg: rgba(16, 185, 129, 0.18);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.18);
+  --danger: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.18);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="light"] {
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  --border-color: #cbd5e1;
+
+  --text-main: #0f172a;
+  --text-muted: #475569; /* Contraste >= 4.5:1 contra #ffffff y #f1f5f9 */
+  --text-inverse: #ffffff;
+
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-glow: rgba(79, 70, 229, 0.15);
+
+  --success-bg: rgba(16, 185, 129, 0.12);
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --danger-bg: rgba(239, 68, 68, 0.12);
+
+  --shadow-card: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
